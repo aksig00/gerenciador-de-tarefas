@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gerenciador de Tarefas, Leads e Receitas</title>
+  <title>Gerenciador Operacional</title>
 
   <style>
     :root {
@@ -15,11 +15,9 @@
       --muted: #9ca3af;
       --border: #374151;
       --primary: #38bdf8;
-      --primary-dark: #0284c7;
       --success: #22c55e;
       --danger: #ef4444;
       --warning: #f59e0b;
-      --white: #ffffff;
       --shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
       --radius: 18px;
     }
@@ -54,7 +52,7 @@
     }
 
     .container {
-      width: min(1180px, calc(100% - 32px));
+      width: min(1280px, calc(100% - 32px));
       margin: 0 auto 48px;
     }
 
@@ -142,6 +140,14 @@
       grid-template-columns: 1.2fr 1.2fr 1fr auto;
     }
 
+    .form-grid.boletas {
+      grid-template-columns: repeat(6, 1fr);
+    }
+
+    .full-row {
+      grid-column: 1 / -1;
+    }
+
     label {
       display: flex;
       flex-direction: column;
@@ -207,6 +213,13 @@
     }
 
     .filters {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .task-filters {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
@@ -282,6 +295,7 @@
       font-weight: 800;
       margin-left: 8px;
       vertical-align: middle;
+      white-space: nowrap;
     }
 
     .badge-success {
@@ -310,7 +324,7 @@
 
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 12px;
       margin-bottom: 18px;
     }
@@ -332,7 +346,7 @@
 
     .kpi strong {
       display: block;
-      font-size: 24px;
+      font-size: 23px;
     }
 
     .message {
@@ -375,12 +389,58 @@
       background: rgba(17, 24, 39, 0.55);
     }
 
-    @media (max-width: 900px) {
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: rgba(17, 24, 39, 0.7);
+    }
+
+    table {
+      width: 100%;
+      min-width: 1160px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    th {
+      color: #dbeafe;
+      background: rgba(31, 41, 55, 0.95);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    td {
+      color: #e5e7eb;
+    }
+
+    .number {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    @media (max-width: 1000px) {
 
       .form-grid,
       .form-grid.three,
       .form-grid.leads,
-      .kpi-grid {
+      .form-grid.boletas,
+      .kpi-grid,
+      .filters {
         grid-template-columns: 1fr;
       }
 
@@ -402,13 +462,13 @@
 <body>
   <header>
     <h1>Gerenciador Operacional</h1>
-    <p>Tarefas, leads, entradas e despesas em um único painel.</p>
+    <p>Tarefas, leads e controle de boletas em um único painel.</p>
   </header>
 
   <main class="container">
     <div class="top-alert">
-      <strong>Atenção:</strong> antes de usar esta versão, rode o SQL no Supabase para criar a coluna
-      <strong>prazo</strong> e as tabelas <strong>leads</strong> e <strong>receitas</strong>.
+      <strong>Atenção:</strong> esta versão troca o antigo módulo de receitas pelo módulo de <strong>Boletas</strong>.
+      Antes de usar, crie a tabela <strong>boletas</strong> no Supabase e importe o CSV da planilha.
     </div>
 
     <div id="message" class="message"></div>
@@ -416,16 +476,13 @@
     <nav class="tabs">
       <button class="tab-button active" data-tab="tarefas">Tarefas</button>
       <button class="tab-button" data-tab="leads">Leads</button>
-      <button class="tab-button" data-tab="receitas">Receitas</button>
+      <button class="tab-button" data-tab="boletas">Boletas</button>
     </nav>
 
-    <!-- TAREFAS -->
     <section id="tarefas" class="tab-panel active">
       <div class="panel">
         <h2>Tarefas</h2>
-        <p class="panel-description">
-          Cadastre tarefas com prazo, marque como concluídas e filtre por status.
-        </p>
+        <p class="panel-description">Cadastre tarefas com prazo, marque como concluídas e filtre por status.</p>
 
         <form id="tarefa-form" class="form-grid three">
           <label>
@@ -446,7 +503,7 @@
           <button class="primary-button" type="submit">Adicionar</button>
         </form>
 
-        <div class="filters">
+        <div class="task-filters">
           <button class="filter-button active" data-filtro="todas">Todas</button>
           <button class="filter-button" data-filtro="pendentes">Pendentes</button>
           <button class="filter-button" data-filtro="concluidas">Concluídas</button>
@@ -456,13 +513,10 @@
       <div id="tarefas-lista" class="grid-list"></div>
     </section>
 
-    <!-- LEADS -->
     <section id="leads" class="tab-panel">
       <div class="panel">
         <h2>Leads e clientes</h2>
-        <p class="panel-description">
-          Cadastre contatos comerciais e acompanhe o estágio de cada pessoa.
-        </p>
+        <p class="panel-description">Cadastre contatos comerciais e acompanhe o estágio de cada pessoa.</p>
 
         <form id="lead-form" class="form-grid leads">
           <label>
@@ -492,60 +546,151 @@
       <div id="leads-lista" class="grid-list"></div>
     </section>
 
-    <!-- RECEITAS -->
-    <section id="receitas" class="tab-panel">
+    <section id="boletas" class="tab-panel">
       <div class="kpi-grid">
         <div class="kpi">
-          <span>Entradas</span>
-          <strong id="kpi-entradas">R$ 0,00</strong>
+          <span>Boletas filtradas</span>
+          <strong id="kpi-boletas-qtd">0</strong>
         </div>
 
         <div class="kpi">
-          <span>Despesas</span>
-          <strong id="kpi-despesas">R$ 0,00</strong>
+          <span>Negociado</span>
+          <strong id="kpi-boletas-negociado">R$ 0,00</strong>
         </div>
 
         <div class="kpi">
-          <span>Saldo</span>
-          <strong id="kpi-saldo">R$ 0,00</strong>
+          <span>Fee Átria</span>
+          <strong id="kpi-boletas-fee">R$ 0,00</strong>
+        </div>
+
+        <div class="kpi">
+          <span>Repasse estimado 12%</span>
+          <strong id="kpi-boletas-repasse">R$ 0,00</strong>
         </div>
       </div>
 
       <div class="panel">
-        <h2>Receitas e despesas</h2>
-        <p class="panel-description">
-          Registre entradas e saídas para acompanhar o saldo operacional.
-        </p>
+        <h2>Nova boleta</h2>
+        <p class="panel-description">Use este formulário para incluir novas operações direto no Supabase.</p>
 
-        <form id="receita-form" class="form-grid">
+        <form id="boleta-form" class="form-grid boletas">
           <label>
-            Descrição
-            <input type="text" name="descricao" placeholder="Ex: Receita cliente X" required />
-          </label>
-
-          <label>
-            Valor
-            <input type="number" name="valor" placeholder="1000.00" step="0.01" min="0" required />
-          </label>
-
-          <label>
-            Tipo
-            <select name="tipo">
-              <option value="entrada">Entrada</option>
-              <option value="despesa">Despesa</option>
-            </select>
+            Mês origem
+            <input type="text" name="mes_origem" placeholder="Ex: Jun-26" />
           </label>
 
           <label>
             Data
-            <input type="date" name="data_lancamento" required />
+            <input type="date" name="data" required />
           </label>
 
-          <button class="primary-button" type="submit">Registrar</button>
+          <label>
+            Cliente
+            <input type="text" name="cliente" placeholder="Nome do cliente" required />
+          </label>
+
+          <label>
+            AAI
+            <input type="text" name="aai" placeholder="Assessor" required />
+          </label>
+
+          <label>
+            Código
+            <input type="text" name="codigo" placeholder="Código do cliente" />
+          </label>
+
+          <label>
+            Produto
+            <input type="text" name="produto" placeholder="Trade, L&S, Remessa..." required />
+          </label>
+
+          <label>
+            Ativo
+            <input type="text" name="ativo" placeholder="PETR4, DOL, SWAP..." />
+          </label>
+
+          <label>
+            Negociado
+            <input type="number" name="negociado" step="0.01" min="0" placeholder="100000.00" />
+          </label>
+
+          <label>
+            Fee BTG
+            <input type="number" name="fee_btg" step="0.01" min="0" placeholder="500.00" />
+          </label>
+
+          <label>
+            Fee Átria
+            <input type="number" name="fee_atria" step="0.01" min="0" placeholder="350.00" />
+          </label>
+
+          <label>
+            ROA
+            <input type="number" name="roa" step="0.000001" min="0" placeholder="0.0035" />
+          </label>
+
+          <label>
+            Ação
+            <input type="text" name="acao" placeholder="Executado, Aprovado..." />
+          </label>
+
+          <label>
+            Status
+            <select name="status">
+              <option value="FEITO">FEITO</option>
+              <option value="OPERACIONAL">OPERACIONAL</option>
+              <option value="AGUARDAR">AGUARDAR</option>
+              <option value="PENDENTE">PENDENTE</option>
+            </select>
+          </label>
+
+          <div class="full-row">
+            <button class="primary-button" type="submit">Adicionar boleta</button>
+          </div>
         </form>
       </div>
 
-      <div id="receitas-lista" class="grid-list"></div>
+      <div class="panel">
+        <h2>Consulta de boletas</h2>
+        <p class="panel-description">Filtre por assessor, produto, status ou busque por cliente, ativo e código.</p>
+
+        <div class="filters">
+          <label>
+            AAI
+            <select id="boleta-filtro-aai">
+              <option value="">Todos</option>
+            </select>
+          </label>
+
+          <label>
+            Produto
+            <select id="boleta-filtro-produto">
+              <option value="">Todos</option>
+            </select>
+          </label>
+
+          <label>
+            Status
+            <select id="boleta-filtro-status">
+              <option value="">Todos</option>
+            </select>
+          </label>
+
+          <label>
+            Buscar
+            <input id="boleta-busca" type="text" placeholder="Cliente, ativo ou código" />
+          </label>
+
+          <label>
+            Limpar filtros
+            <button id="limpar-filtros-boletas" class="secondary-button" type="button">Limpar</button>
+          </label>
+        </div>
+
+        <p id="boletas-info" class="muted"></p>
+
+        <div id="boletas-lista"></div>
+      </div>
     </section>
   </main>
 
@@ -554,8 +699,8 @@
 
     /*
       IMPORTANTE:
-      Substitua as duas linhas abaixo pelos valores atuais do seu index.html.
-      Não use a chave service_role no frontend. Use apenas a chave pública anon.
+      Substitua estas duas linhas pelos valores atuais do seu projeto Supabase.
+      Use apenas a chave pública anon. Nunca use service_role no frontend.
     */
     const SUPABASE_URL = "https://uydggabwkxnizdrbvrjc.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_6kctEvNSXCS4D7KoJ-TfKg_oLQl29r4";
@@ -565,15 +710,20 @@
     const state = {
       tarefas: [],
       leads: [],
-      receitas: [],
-      filtroTarefas: "todas"
+      boletas: [],
+      filtroTarefas: "todas",
+      boletaFiltros: {
+        aai: "",
+        produto: "",
+        status: "",
+        busca: ""
+      }
     };
 
     const leadStatus = ["lead", "prospect", "cliente", "perdido"];
 
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => document.querySelectorAll(selector);
-
     const messageBox = $("#message");
 
     function showMessage(text, type = "info") {
@@ -610,12 +760,18 @@
       return `${year}-${month}-${day}`;
     }
 
+    function monthLabelFromISO(dateString) {
+      if (!dateString) return "Manual";
+
+      const [year, month] = dateString.split("-").map(Number);
+      const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+      return `${months[month - 1]}-${String(year).slice(-2)}`;
+    }
+
     function formatDate(dateString) {
       if (!dateString) return "Sem data";
-
       const [year, month, day] = dateString.split("-").map(Number);
       const date = new Date(year, month - 1, day);
-
       return new Intl.DateTimeFormat("pt-BR").format(date);
     }
 
@@ -626,9 +782,32 @@
       }).format(Number(value || 0));
     }
 
+    function formatPercentDecimal(value) {
+      return new Intl.NumberFormat("pt-BR", {
+        style: "percent",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(Number(value || 0));
+    }
+
+    function toNumber(value) {
+      if (value === null || value === undefined || value === "") return 0;
+      return Number(value);
+    }
+
+    function normalizeText(value) {
+      return String(value ?? "").trim().toLowerCase();
+    }
+
     function capitalize(value) {
       const text = String(value ?? "");
       return text.charAt(0).toUpperCase() + text.slice(1);
+    }
+
+    function uniqueSorted(values) {
+      return [...new Set(values.filter(Boolean).map((v) => String(v).trim()))]
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, "pt-BR"));
     }
 
     function isOverdue(prazo, feita) {
@@ -643,13 +822,17 @@
       return prazoDate < today;
     }
 
-    function setLoading(text = "Carregando dados...") {
-      showMessage(text, "info");
+    function setSelectOptions(selectElement, values, selectedValue) {
+      const firstOption = `<option value="">Todos</option>`;
+      const options = values.map((value) => {
+        const safeValue = escapeHTML(value);
+        const selected = value === selectedValue ? "selected" : "";
+        return `<option value="${safeValue}" ${selected}>${safeValue}</option>`;
+      }).join("");
+
+      selectElement.innerHTML = firstOption + options;
     }
 
-    /*
-      TABS
-    */
     function setupTabs() {
       $$(".tab-button").forEach((button) => {
         button.addEventListener("click", () => {
@@ -666,9 +849,6 @@
       });
     }
 
-    /*
-      TAREFAS
-    */
     async function loadTarefas() {
       const { data, error } = await supabase
         .from("tarefas")
@@ -682,14 +862,8 @@
     }
 
     function getFilteredTarefas() {
-      if (state.filtroTarefas === "pendentes") {
-        return state.tarefas.filter((tarefa) => !tarefa.feita);
-      }
-
-      if (state.filtroTarefas === "concluidas") {
-        return state.tarefas.filter((tarefa) => tarefa.feita);
-      }
-
+      if (state.filtroTarefas === "pendentes") return state.tarefas.filter((tarefa) => !tarefa.feita);
+      if (state.filtroTarefas === "concluidas") return state.tarefas.filter((tarefa) => tarefa.feita);
       return state.tarefas;
     }
 
@@ -707,44 +881,24 @@
         const atrasada = isOverdue(tarefa.prazo, feita);
 
         let badge = `<span class="badge badge-warning">Pendente</span>`;
-
-        if (feita) {
-          badge = `<span class="badge badge-success">Concluída</span>`;
-        } else if (atrasada) {
-          badge = `<span class="badge badge-danger">Atrasada</span>`;
-        }
+        if (feita) badge = `<span class="badge badge-success">Concluída</span>`;
+        else if (atrasada) badge = `<span class="badge badge-danger">Atrasada</span>`;
 
         return `
           <article class="card ${feita ? "card-done" : ""}">
             <div>
-              <h3>
-                ${escapeHTML(tarefa.titulo)}
-                ${badge}
-              </h3>
+              <h3>${escapeHTML(tarefa.titulo)} ${badge}</h3>
               <p>
-                Prazo: <strong>${tarefa.prazo ? formatDate(tarefa.prazo) : "Sem prazo"}</strong>
-                <br />
+                Prazo: <strong>${tarefa.prazo ? formatDate(tarefa.prazo) : "Sem prazo"}</strong><br />
                 Criada por: ${escapeHTML(tarefa.criada_por || "Não informado")}
               </p>
             </div>
 
             <div class="card-actions">
-              <button 
-                class="secondary-button" 
-                data-action="toggle-tarefa" 
-                data-id="${escapeHTML(tarefa.id)}"
-                data-value="${feita ? "false" : "true"}"
-              >
+              <button class="secondary-button" data-action="toggle-tarefa" data-id="${escapeHTML(tarefa.id)}" data-value="${feita ? "false" : "true"}">
                 ${feita ? "Reabrir" : "Concluir"}
               </button>
-
-              <button 
-                class="danger-button" 
-                data-action="delete-tarefa" 
-                data-id="${escapeHTML(tarefa.id)}"
-              >
-                Excluir
-              </button>
+              <button class="danger-button" data-action="delete-tarefa" data-id="${escapeHTML(tarefa.id)}">Excluir</button>
             </div>
           </article>
         `;
@@ -756,7 +910,6 @@
 
       const form = event.currentTarget;
       const formData = new FormData(form);
-
       const titulo = String(formData.get("titulo") || "").trim();
       const prazo = String(formData.get("prazo") || "").trim() || null;
       const criada_por = String(formData.get("criada_por") || "").trim() || "web";
@@ -766,34 +919,18 @@
         return;
       }
 
-      const { error } = await supabase
-        .from("tarefas")
-        .insert([
-          {
-            titulo,
-            prazo,
-            criada_por,
-            feita: false
-          }
-        ]);
-
+      const { error } = await supabase.from("tarefas").insert([{ titulo, prazo, criada_por, feita: false }]);
       if (error) throw error;
 
       form.reset();
       form.elements.criada_por.value = "web";
-
       await loadTarefas();
       showMessage("Tarefa criada com sucesso.", "success");
     }
 
     async function toggleTarefa(id, feita) {
-      const { error } = await supabase
-        .from("tarefas")
-        .update({ feita })
-        .eq("id", id);
-
+      const { error } = await supabase.from("tarefas").update({ feita }).eq("id", id);
       if (error) throw error;
-
       await loadTarefas();
       showMessage(feita ? "Tarefa concluída." : "Tarefa reaberta.", "success");
     }
@@ -802,11 +939,7 @@
       const confirmed = window.confirm("Deseja excluir esta tarefa?");
       if (!confirmed) return;
 
-      const { error } = await supabase
-        .from("tarefas")
-        .delete()
-        .eq("id", id);
-
+      const { error } = await supabase.from("tarefas").delete().eq("id", id);
       if (error) throw error;
 
       await loadTarefas();
@@ -815,21 +948,14 @@
 
     function setupTarefaEvents() {
       $("#tarefa-form").addEventListener("submit", async (event) => {
-        try {
-          await createTarefa(event);
-        } catch (error) {
-          handleError(error, "criação da tarefa");
-        }
+        try { await createTarefa(event); }
+        catch (error) { handleError(error, "criação da tarefa"); }
       });
 
       $$(".filter-button").forEach((button) => {
         button.addEventListener("click", () => {
           state.filtroTarefas = button.dataset.filtro;
-
-          $$(".filter-button").forEach((btn) => {
-            btn.classList.toggle("active", btn.dataset.filtro === state.filtroTarefas);
-          });
-
+          $$(".filter-button").forEach((btn) => btn.classList.toggle("active", btn.dataset.filtro === state.filtroTarefas));
           renderTarefas();
         });
       });
@@ -838,27 +964,15 @@
         const button = event.target.closest("button[data-action]");
         if (!button) return;
 
-        const action = button.dataset.action;
-        const id = button.dataset.id;
-
         try {
-          if (action === "toggle-tarefa") {
-            const feita = button.dataset.value === "true";
-            await toggleTarefa(id, feita);
-          }
-
-          if (action === "delete-tarefa") {
-            await deleteTarefa(id);
-          }
+          if (button.dataset.action === "toggle-tarefa") await toggleTarefa(button.dataset.id, button.dataset.value === "true");
+          if (button.dataset.action === "delete-tarefa") await deleteTarefa(button.dataset.id);
         } catch (error) {
           handleError(error, "atualização da tarefa");
         }
       });
     }
 
-    /*
-      LEADS
-    */
     async function loadLeads() {
       const { data, error } = await supabase
         .from("leads")
@@ -881,15 +995,10 @@
 
       lista.innerHTML = state.leads.map((lead) => {
         const statusOptions = leadStatus.map((status) => {
-          return `
-            <option value="${status}" ${lead.status === status ? "selected" : ""}>
-              ${capitalize(status)}
-            </option>
-          `;
+          return `<option value="${status}" ${lead.status === status ? "selected" : ""}>${capitalize(status)}</option>`;
         }).join("");
 
         let badgeClass = "badge-info";
-
         if (lead.status === "cliente") badgeClass = "badge-success";
         if (lead.status === "perdido") badgeClass = "badge-danger";
         if (lead.status === "prospect") badgeClass = "badge-warning";
@@ -897,25 +1006,12 @@
         return `
           <article class="card">
             <div>
-              <h3>
-                ${escapeHTML(lead.nome)}
-                <span class="badge ${badgeClass}">${capitalize(lead.status)}</span>
-              </h3>
+              <h3>${escapeHTML(lead.nome)} <span class="badge ${badgeClass}">${capitalize(lead.status)}</span></h3>
               <p>Contato: ${escapeHTML(lead.contato || "Não informado")}</p>
             </div>
-
             <div class="card-actions">
-              <select data-action="status-lead" data-id="${escapeHTML(lead.id)}">
-                ${statusOptions}
-              </select>
-
-              <button 
-                class="danger-button" 
-                data-action="delete-lead" 
-                data-id="${escapeHTML(lead.id)}"
-              >
-                Excluir
-              </button>
+              <select data-action="status-lead" data-id="${escapeHTML(lead.id)}">${statusOptions}</select>
+              <button class="danger-button" data-action="delete-lead" data-id="${escapeHTML(lead.id)}">Excluir</button>
             </div>
           </article>
         `;
@@ -927,7 +1023,6 @@
 
       const form = event.currentTarget;
       const formData = new FormData(form);
-
       const nome = String(formData.get("nome") || "").trim();
       const contato = String(formData.get("contato") || "").trim();
       const status = String(formData.get("status") || "lead").trim();
@@ -937,32 +1032,17 @@
         return;
       }
 
-      const { error } = await supabase
-        .from("leads")
-        .insert([
-          {
-            nome,
-            contato,
-            status
-          }
-        ]);
-
+      const { error } = await supabase.from("leads").insert([{ nome, contato, status }]);
       if (error) throw error;
 
       form.reset();
-
       await loadLeads();
       showMessage("Lead cadastrado com sucesso.", "success");
     }
 
     async function updateLeadStatus(id, status) {
-      const { error } = await supabase
-        .from("leads")
-        .update({ status })
-        .eq("id", id);
-
+      const { error } = await supabase.from("leads").update({ status }).eq("id", id);
       if (error) throw error;
-
       await loadLeads();
       showMessage("Status do lead atualizado.", "success");
     }
@@ -971,11 +1051,7 @@
       const confirmed = window.confirm("Deseja excluir este lead?");
       if (!confirmed) return;
 
-      const { error } = await supabase
-        .from("leads")
-        .delete()
-        .eq("id", id);
-
+      const { error } = await supabase.from("leads").delete().eq("id", id);
       if (error) throw error;
 
       await loadLeads();
@@ -984,195 +1060,278 @@
 
     function setupLeadEvents() {
       $("#lead-form").addEventListener("submit", async (event) => {
-        try {
-          await createLead(event);
-        } catch (error) {
-          handleError(error, "cadastro do lead");
-        }
+        try { await createLead(event); }
+        catch (error) { handleError(error, "cadastro do lead"); }
       });
 
       $("#leads-lista").addEventListener("change", async (event) => {
         const select = event.target.closest("select[data-action='status-lead']");
         if (!select) return;
 
-        try {
-          await updateLeadStatus(select.dataset.id, select.value);
-        } catch (error) {
-          handleError(error, "atualização do lead");
-        }
+        try { await updateLeadStatus(select.dataset.id, select.value); }
+        catch (error) { handleError(error, "atualização do lead"); }
       });
 
       $("#leads-lista").addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-action='delete-lead']");
         if (!button) return;
 
-        try {
-          await deleteLead(button.dataset.id);
-        } catch (error) {
-          handleError(error, "exclusão do lead");
-        }
+        try { await deleteLead(button.dataset.id); }
+        catch (error) { handleError(error, "exclusão do lead"); }
       });
     }
 
-    /*
-      RECEITAS
-    */
-    async function loadReceitas() {
+    async function loadBoletas() {
       const { data, error } = await supabase
-        .from("receitas")
+        .from("boletas")
         .select("*")
-        .order("data_lancamento", { ascending: false })
+        .order("data", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      state.receitas = data || [];
-      renderReceitas();
-      renderReceitasKPIs();
+      state.boletas = data || [];
+      renderBoletaFilterOptions();
+      renderBoletas();
     }
 
-    function renderReceitasKPIs() {
-      const entradas = state.receitas
-        .filter((item) => item.tipo === "entrada")
-        .reduce((sum, item) => sum + Number(item.valor || 0), 0);
+    function renderBoletaFilterOptions() {
+      const aais = uniqueSorted(state.boletas.map((item) => item.aai));
+      const produtos = uniqueSorted(state.boletas.map((item) => item.produto));
+      const statusList = uniqueSorted(state.boletas.map((item) => item.status));
 
-      const despesas = state.receitas
-        .filter((item) => item.tipo === "despesa")
-        .reduce((sum, item) => sum + Number(item.valor || 0), 0);
-
-      const saldo = entradas - despesas;
-
-      $("#kpi-entradas").textContent = formatMoney(entradas);
-      $("#kpi-despesas").textContent = formatMoney(despesas);
-      $("#kpi-saldo").textContent = formatMoney(saldo);
+      setSelectOptions($("#boleta-filtro-aai"), aais, state.boletaFiltros.aai);
+      setSelectOptions($("#boleta-filtro-produto"), produtos, state.boletaFiltros.produto);
+      setSelectOptions($("#boleta-filtro-status"), statusList, state.boletaFiltros.status);
     }
 
-    function renderReceitas() {
-      const lista = $("#receitas-lista");
+    function getFilteredBoletas() {
+      const { aai, produto, status, busca } = state.boletaFiltros;
+      const search = normalizeText(busca);
 
-      if (!state.receitas.length) {
-        lista.innerHTML = `<div class="empty">Nenhum lançamento registrado.</div>`;
+      return state.boletas.filter((item) => {
+        const matchAAI = !aai || item.aai === aai;
+        const matchProduto = !produto || item.produto === produto;
+        const matchStatus = !status || item.status === status;
+
+        const searchText = normalizeText([
+          item.cliente,
+          item.aai,
+          item.codigo,
+          item.produto,
+          item.ativo,
+          item.status,
+          item.acao,
+          item.mes_origem
+        ].join(" "));
+
+        const matchSearch = !search || searchText.includes(search);
+        return matchAAI && matchProduto && matchStatus && matchSearch;
+      });
+    }
+
+    function renderBoletasKPIs(boletas) {
+      const totalNegociado = boletas.reduce((sum, item) => sum + Number(item.negociado || 0), 0);
+      const totalFeeAtria = boletas.reduce((sum, item) => sum + Number(item.fee_atria || 0), 0);
+      const repasse = totalFeeAtria * 0.12;
+
+      $("#kpi-boletas-qtd").textContent = String(boletas.length);
+      $("#kpi-boletas-negociado").textContent = formatMoney(totalNegociado);
+      $("#kpi-boletas-fee").textContent = formatMoney(totalFeeAtria);
+      $("#kpi-boletas-repasse").textContent = formatMoney(repasse);
+    }
+
+    function renderBoletas() {
+      const lista = $("#boletas-lista");
+      const info = $("#boletas-info");
+      const boletas = getFilteredBoletas();
+
+      renderBoletasKPIs(boletas);
+
+      if (!boletas.length) {
+        info.textContent = "";
+        lista.innerHTML = `<div class="empty">Nenhuma boleta encontrada.</div>`;
         return;
       }
 
-      lista.innerHTML = state.receitas.map((item) => {
-        const isEntrada = item.tipo === "entrada";
-        const badgeClass = isEntrada ? "badge-success" : "badge-danger";
-        const signal = isEntrada ? "+" : "-";
+      const maxRows = 250;
+      const visibleRows = boletas.slice(0, maxRows);
+      info.textContent = boletas.length > maxRows
+        ? `Mostrando ${maxRows} de ${boletas.length} boletas filtradas.`
+        : `Mostrando ${boletas.length} boletas.`;
 
+      const rows = visibleRows.map((item) => {
         return `
-          <article class="card">
-            <div>
-              <h3>
-                ${escapeHTML(item.descricao)}
-                <span class="badge ${badgeClass}">${capitalize(item.tipo)}</span>
-              </h3>
-              <p>
-                Data: <strong>${formatDate(item.data_lancamento)}</strong>
-                <br />
-                Valor: <strong>${signal} ${formatMoney(item.valor)}</strong>
-              </p>
-            </div>
-
-            <div class="card-actions">
-              <button 
-                class="danger-button" 
-                data-action="delete-receita" 
-                data-id="${escapeHTML(item.id)}"
-              >
-                Excluir
-              </button>
-            </div>
-          </article>
+          <tr>
+            <td>${formatDate(item.data)}</td>
+            <td>${escapeHTML(item.mes_origem || "")}</td>
+            <td>${escapeHTML(item.cliente || "")}</td>
+            <td>${escapeHTML(item.aai || "")}</td>
+            <td>${escapeHTML(item.codigo || "")}</td>
+            <td>${escapeHTML(item.produto || "")}</td>
+            <td>${escapeHTML(item.ativo || "")}</td>
+            <td class="number">${formatMoney(item.negociado)}</td>
+            <td class="number">${formatMoney(item.fee_btg)}</td>
+            <td class="number">${formatMoney(item.fee_atria)}</td>
+            <td class="number">${formatPercentDecimal(item.roa)}</td>
+            <td>${escapeHTML(item.acao || "")}</td>
+            <td>
+              <select data-action="status-boleta" data-id="${escapeHTML(item.id)}">
+                <option value="FEITO" ${item.status === "FEITO" ? "selected" : ""}>FEITO</option>
+                <option value="OPERACIONAL" ${item.status === "OPERACIONAL" ? "selected" : ""}>OPERACIONAL</option>
+                <option value="AGUARDAR" ${item.status === "AGUARDAR" ? "selected" : ""}>AGUARDAR</option>
+                <option value="PENDENTE" ${item.status === "PENDENTE" ? "selected" : ""}>PENDENTE</option>
+                <option value="${escapeHTML(item.status || "")}" ${item.status && !["FEITO", "OPERACIONAL", "AGUARDAR", "PENDENTE"].includes(item.status) ? "selected" : ""}>${escapeHTML(item.status || "Outro")}</option>
+              </select>
+            </td>
+            <td>
+              <button class="danger-button" data-action="delete-boleta" data-id="${escapeHTML(item.id)}">Excluir</button>
+            </td>
+          </tr>
         `;
       }).join("");
+
+      lista.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Mês</th>
+                <th>Cliente</th>
+                <th>AAI</th>
+                <th>Código</th>
+                <th>Produto</th>
+                <th>Ativo</th>
+                <th class="number">Negociado</th>
+                <th class="number">Fee BTG</th>
+                <th class="number">Fee Átria</th>
+                <th class="number">ROA</th>
+                <th>Ação</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
     }
 
-    async function createReceita(event) {
+    async function createBoleta(event) {
       event.preventDefault();
 
       const form = event.currentTarget;
       const formData = new FormData(form);
 
-      const descricao = String(formData.get("descricao") || "").trim();
-      const valor = Number(formData.get("valor"));
-      const tipo = String(formData.get("tipo") || "entrada").trim();
-      const data_lancamento = String(formData.get("data_lancamento") || "").trim();
+      const data = String(formData.get("data") || "").trim();
+      const negociado = toNumber(formData.get("negociado"));
+      const fee_btg = toNumber(formData.get("fee_btg"));
+      const fee_atria = toNumber(formData.get("fee_atria"));
+      const roaManual = formData.get("roa");
+      const roa = roaManual === "" || roaManual === null
+        ? (negociado > 0 ? fee_atria / negociado : 0)
+        : toNumber(roaManual);
 
-      if (!descricao) {
-        showMessage("Digite a descrição do lançamento.", "error");
+      const boleta = {
+        mes_origem: String(formData.get("mes_origem") || "").trim() || monthLabelFromISO(data),
+        data,
+        cliente: String(formData.get("cliente") || "").trim(),
+        aai: String(formData.get("aai") || "").trim(),
+        codigo: String(formData.get("codigo") || "").trim(),
+        produto: String(formData.get("produto") || "").trim(),
+        ativo: String(formData.get("ativo") || "").trim(),
+        negociado,
+        fee_btg,
+        fee_atria,
+        roa,
+        acao: String(formData.get("acao") || "").trim(),
+        status: String(formData.get("status") || "FEITO").trim()
+      };
+
+      if (!boleta.data || !boleta.cliente || !boleta.aai || !boleta.produto) {
+        showMessage("Preencha pelo menos data, cliente, AAI e produto.", "error");
         return;
       }
 
-      if (!valor || valor <= 0) {
-        showMessage("Digite um valor maior que zero.", "error");
-        return;
-      }
-
-      if (!data_lancamento) {
-        showMessage("Escolha a data do lançamento.", "error");
-        return;
-      }
-
-      const { error } = await supabase
-        .from("receitas")
-        .insert([
-          {
-            descricao,
-            valor,
-            tipo,
-            data_lancamento
-          }
-        ]);
-
+      const { error } = await supabase.from("boletas").insert([boleta]);
       if (error) throw error;
 
       form.reset();
-      form.elements.data_lancamento.value = todayISO();
-
-      await loadReceitas();
-      showMessage("Lançamento registrado com sucesso.", "success");
+      form.elements.data.value = todayISO();
+      form.elements.status.value = "FEITO";
+      await loadBoletas();
+      showMessage("Boleta adicionada com sucesso.", "success");
     }
 
-    async function deleteReceita(id) {
-      const confirmed = window.confirm("Deseja excluir este lançamento?");
+    async function updateBoletaStatus(id, status) {
+      const { error } = await supabase.from("boletas").update({ status }).eq("id", id);
+      if (error) throw error;
+      await loadBoletas();
+      showMessage("Status da boleta atualizado.", "success");
+    }
+
+    async function deleteBoleta(id) {
+      const confirmed = window.confirm("Deseja excluir esta boleta?");
       if (!confirmed) return;
 
-      const { error } = await supabase
-        .from("receitas")
-        .delete()
-        .eq("id", id);
-
+      const { error } = await supabase.from("boletas").delete().eq("id", id);
       if (error) throw error;
 
-      await loadReceitas();
-      showMessage("Lançamento excluído.", "success");
+      await loadBoletas();
+      showMessage("Boleta excluída.", "success");
     }
 
-    function setupReceitaEvents() {
-      $("#receita-form").addEventListener("submit", async (event) => {
-        try {
-          await createReceita(event);
-        } catch (error) {
-          handleError(error, "registro de receita/despesa");
-        }
+    function setupBoletaEvents() {
+      $("#boleta-form").addEventListener("submit", async (event) => {
+        try { await createBoleta(event); }
+        catch (error) { handleError(error, "cadastro da boleta"); }
       });
 
-      $("#receitas-lista").addEventListener("click", async (event) => {
-        const button = event.target.closest("button[data-action='delete-receita']");
+      $("#boleta-filtro-aai").addEventListener("change", (event) => {
+        state.boletaFiltros.aai = event.target.value;
+        renderBoletas();
+      });
+
+      $("#boleta-filtro-produto").addEventListener("change", (event) => {
+        state.boletaFiltros.produto = event.target.value;
+        renderBoletas();
+      });
+
+      $("#boleta-filtro-status").addEventListener("change", (event) => {
+        state.boletaFiltros.status = event.target.value;
+        renderBoletas();
+      });
+
+      $("#boleta-busca").addEventListener("input", (event) => {
+        state.boletaFiltros.busca = event.target.value;
+        renderBoletas();
+      });
+
+      $("#limpar-filtros-boletas").addEventListener("click", () => {
+        state.boletaFiltros = { aai: "", produto: "", status: "", busca: "" };
+        $("#boleta-busca").value = "";
+        renderBoletaFilterOptions();
+        renderBoletas();
+      });
+
+      $("#boletas-lista").addEventListener("change", async (event) => {
+        const select = event.target.closest("select[data-action='status-boleta']");
+        if (!select) return;
+
+        try { await updateBoletaStatus(select.dataset.id, select.value); }
+        catch (error) { handleError(error, "atualização da boleta"); }
+      });
+
+      $("#boletas-lista").addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-action='delete-boleta']");
         if (!button) return;
 
-        try {
-          await deleteReceita(button.dataset.id);
-        } catch (error) {
-          handleError(error, "exclusão do lançamento");
-        }
+        try { await deleteBoleta(button.dataset.id); }
+        catch (error) { handleError(error, "exclusão da boleta"); }
       });
     }
 
-    /*
-      INICIALIZAÇÃO
-    */
     async function init() {
       if (
         SUPABASE_URL === "COLE_AQUI_SUA_SUPABASE_URL" ||
@@ -1185,17 +1344,13 @@
       setupTabs();
       setupTarefaEvents();
       setupLeadEvents();
-      setupReceitaEvents();
+      setupBoletaEvents();
 
-      $("#receita-form").elements.data_lancamento.value = todayISO();
+      $("#boleta-form").elements.data.value = todayISO();
 
       try {
-        setLoading();
-        await Promise.all([
-          loadTarefas(),
-          loadLeads(),
-          loadReceitas()
-        ]);
+        showMessage("Carregando dados...", "info");
+        await Promise.all([loadTarefas(), loadLeads(), loadBoletas()]);
         showMessage("Dados carregados com sucesso.", "success");
       } catch (error) {
         handleError(error, "carga inicial dos dados");

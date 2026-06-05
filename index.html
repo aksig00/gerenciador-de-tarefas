@@ -484,28 +484,46 @@
         <h2>Tarefas</h2>
         <p class="panel-description">Cadastre tarefas com prazo, marque como concluídas e filtre por status.</p>
 
-        <form id="tarefa-form" class="form-grid three">
+        <form id="tarefa-form" class="form-grid" style="grid-template-columns:1fr 1fr 2fr 1fr 1fr auto;align-items:end;">
           <label>
-            Título da tarefa
-            <input type="text" name="titulo" placeholder="Ex: Ligar para cliente" required />
+            Responsável
+            <input type="text" name="criada_por" placeholder="Ex: André" />
           </label>
-
           <label>
-            Prazo
+            Tipo
+            <select name="tipo">
+              <option value="">Selecionar...</option>
+              <option value="Ligação">Ligação</option>
+              <option value="Reunião">Reunião</option>
+              <option value="Email">Email</option>
+              <option value="Follow-up">Follow-up</option>
+              <option value="Análise">Análise</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </label>
+          <label>
+            Descrição
+            <input type="text" name="titulo" placeholder="Descreva a tarefa" required />
+          </label>
+          <label>
+            Vencimento
             <input type="date" name="prazo" />
           </label>
-
           <label>
-            Criada por
-            <input type="text" name="criada_por" value="web" />
+            Status
+            <select name="status_tarefa">
+              <option value="Pendente">Pendente</option>
+              <option value="Em andamento">Em andamento</option>
+              <option value="Concluída">Concluída</option>
+            </select>
           </label>
-
           <button class="primary-button" type="submit">Adicionar</button>
         </form>
 
         <div class="task-filters">
           <button class="filter-button active" data-filtro="todas">Todas</button>
           <button class="filter-button" data-filtro="pendentes">Pendentes</button>
+          <button class="filter-button" data-filtro="andamento">Em andamento</button>
           <button class="filter-button" data-filtro="concluidas">Concluídas</button>
         </div>
       </div>
@@ -518,27 +536,40 @@
         <h2>Leads e clientes</h2>
         <p class="panel-description">Cadastre contatos comerciais e acompanhe o estágio de cada pessoa.</p>
 
-        <form id="lead-form" class="form-grid leads">
+        <form id="lead-form" class="form-grid" style="grid-template-columns:1.5fr 1fr 1fr 1fr;">
           <label>
             Nome
             <input type="text" name="nome" placeholder="Ex: João Silva" required />
           </label>
-
           <label>
-            Contato
-            <input type="text" name="contato" placeholder="Telefone, e-mail ou WhatsApp" />
+            Assessor
+            <input type="text" name="ass" placeholder="Ex: Rafael" />
           </label>
-
           <label>
-            Status
-            <select name="status">
-              <option value="lead">Lead</option>
-              <option value="prospect">Prospect</option>
-              <option value="cliente">Cliente</option>
-              <option value="perdido">Perdido</option>
+            Qualificação
+            <select name="qualificacao">
+              <option value="">Selecionar...</option>
+              <option value="Quente">Quente</option>
+              <option value="Morno">Morno</option>
+              <option value="Frio">Frio</option>
             </select>
           </label>
-
+          <label>
+            PL Estimado (R$)
+            <input type="number" name="pl_estimado" min="0" step="1000" placeholder="0" />
+          </label>
+          <label>
+            Data do Último Contato
+            <input type="date" name="data_ultimo_contato" />
+          </label>
+          <label>
+            Houve Contato?
+            <select name="houve_contato">
+              <option value="false">Não</option>
+              <option value="true">Sim</option>
+            </select>
+          </label>
+          <div></div>
           <button class="primary-button" type="submit">Cadastrar</button>
         </form>
       </div>
@@ -574,11 +605,6 @@
         <p class="panel-description">Use este formulário para incluir novas operações direto no Supabase.</p>
 
         <form id="boleta-form" class="form-grid boletas">
-          <label>
-            Mês origem
-            <input type="text" name="mes_origem" placeholder="Ex: Jun-26" />
-          </label>
-
           <label>
             Data
             <input type="date" name="data" required />
@@ -817,8 +843,8 @@
         .sort((a, b) => a.localeCompare(b, "pt-BR"));
     }
 
-    function isOverdue(prazo, feita) {
-      if (!prazo || feita) return false;
+    function isOverdue(prazo, status_tarefa) {
+      if (!prazo || status_tarefa === "Concluída") return false;
 
       const [year, month, day] = prazo.split("-").map(Number);
       const prazoDate = new Date(year, month - 1, day);
@@ -869,8 +895,9 @@
     }
 
     function getFilteredTarefas() {
-      if (state.filtroTarefas === "pendentes") return state.tarefas.filter((tarefa) => !tarefa.feita);
-      if (state.filtroTarefas === "concluidas") return state.tarefas.filter((tarefa) => tarefa.feita);
+      if (state.filtroTarefas === "pendentes") return state.tarefas.filter((t) => t.status_tarefa === "Pendente");
+      if (state.filtroTarefas === "andamento") return state.tarefas.filter((t) => t.status_tarefa === "Em andamento");
+      if (state.filtroTarefas === "concluidas") return state.tarefas.filter((t) => t.status_tarefa === "Concluída");
       return state.tarefas;
     }
 
@@ -884,27 +911,32 @@
       }
 
       lista.innerHTML = tarefas.map((tarefa) => {
-        const feita = Boolean(tarefa.feita);
-        const atrasada = isOverdue(tarefa.prazo, feita);
+        const status = tarefa.status_tarefa || "Pendente";
+        const atrasada = isOverdue(tarefa.prazo, status);
 
-        let badge = `<span class="badge badge-warning">Pendente</span>`;
-        if (feita) badge = `<span class="badge badge-success">Concluída</span>`;
-        else if (atrasada) badge = `<span class="badge badge-danger">Atrasada</span>`;
+        let badgeClass = "badge-warning";
+        if (status === "Concluída") badgeClass = "badge-success";
+        else if (status === "Em andamento") badgeClass = "badge-info";
+        else if (atrasada) badgeClass = "badge-danger";
+
+        const badgeLabel = atrasada && status !== "Concluída" ? "Atrasada" : status;
 
         return `
-          <article class="card ${feita ? "card-done" : ""}">
+          <article class="card ${status === "Concluída" ? "card-done" : ""}">
             <div>
-              <h3>${escapeHTML(tarefa.titulo)} ${badge}</h3>
+              <h3>${escapeHTML(tarefa.titulo)} <span class="badge ${badgeClass}">${badgeLabel}</span></h3>
               <p>
-                Prazo: <strong>${tarefa.prazo ? formatDate(tarefa.prazo) : "Sem prazo"}</strong><br />
-                Criada por: ${escapeHTML(tarefa.criada_por || "Não informado")}
+                Responsável: <strong>${escapeHTML(tarefa.criada_por || "—")}</strong> &nbsp;|&nbsp;
+                Tipo: ${escapeHTML(tarefa.tipo || "—")} &nbsp;|&nbsp;
+                Vencimento: <strong>${tarefa.prazo ? formatDate(tarefa.prazo) : "Sem prazo"}</strong>
               </p>
             </div>
-
             <div class="card-actions">
-              <button class="secondary-button" data-action="toggle-tarefa" data-id="${escapeHTML(tarefa.id)}" data-value="${feita ? "false" : "true"}">
-                ${feita ? "Reabrir" : "Concluir"}
-              </button>
+              <select data-action="status-tarefa" data-id="${escapeHTML(tarefa.id)}">
+                <option value="Pendente" ${status === "Pendente" ? "selected" : ""}>Pendente</option>
+                <option value="Em andamento" ${status === "Em andamento" ? "selected" : ""}>Em andamento</option>
+                <option value="Concluída" ${status === "Concluída" ? "selected" : ""}>Concluída</option>
+              </select>
               <button class="danger-button" data-action="delete-tarefa" data-id="${escapeHTML(tarefa.id)}">Excluir</button>
             </div>
           </article>
@@ -919,27 +951,29 @@
       const formData = new FormData(form);
       const titulo = String(formData.get("titulo") || "").trim();
       const prazo = String(formData.get("prazo") || "").trim() || null;
-      const criada_por = String(formData.get("criada_por") || "").trim() || "web";
+      const criada_por = String(formData.get("criada_por") || "").trim() || null;
+      const tipo = String(formData.get("tipo") || "").trim() || null;
+      const status_tarefa = String(formData.get("status_tarefa") || "Pendente").trim();
 
       if (!titulo) {
-        showMessage("Digite um título para a tarefa.", "error");
+        showMessage("Digite uma descrição para a tarefa.", "error");
         return;
       }
 
-      const { error } = await supabase.from("tarefas").insert([{ titulo, prazo, criada_por, feita: false }]);
+      const { error } = await supabase.from("tarefas").insert([{ titulo, prazo, criada_por, tipo, status_tarefa, feita: false }]);
       if (error) throw error;
 
       form.reset();
-      form.elements.criada_por.value = "web";
       await loadTarefas();
       showMessage("Tarefa criada com sucesso.", "success");
     }
 
-    async function toggleTarefa(id, feita) {
-      const { error } = await supabase.from("tarefas").update({ feita }).eq("id", id);
+    async function updateTarefaStatus(id, status) {
+      const feita = status === "Concluída";
+      const { error } = await supabase.from("tarefas").update({ status_tarefa: status, feita }).eq("id", id);
       if (error) throw error;
       await loadTarefas();
-      showMessage(feita ? "Tarefa concluída." : "Tarefa reaberta.", "success");
+      showMessage("Status da tarefa atualizado.", "success");
     }
 
     async function deleteTarefa(id) {
@@ -967,16 +1001,18 @@
         });
       });
 
-      $("#tarefas-lista").addEventListener("click", async (event) => {
-        const button = event.target.closest("button[data-action]");
-        if (!button) return;
+      $("#tarefas-lista").addEventListener("change", async (event) => {
+        const select = event.target.closest("select[data-action='status-tarefa']");
+        if (!select) return;
+        try { await updateTarefaStatus(select.dataset.id, select.value); }
+        catch (error) { handleError(error, "atualização da tarefa"); }
+      });
 
-        try {
-          if (button.dataset.action === "toggle-tarefa") await toggleTarefa(button.dataset.id, button.dataset.value === "true");
-          if (button.dataset.action === "delete-tarefa") await deleteTarefa(button.dataset.id);
-        } catch (error) {
-          handleError(error, "atualização da tarefa");
-        }
+      $("#tarefas-lista").addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-action='delete-tarefa']");
+        if (!button) return;
+        try { await deleteTarefa(button.dataset.id); }
+        catch (error) { handleError(error, "exclusão da tarefa"); }
       });
     }
 
@@ -1001,23 +1037,29 @@
       }
 
       lista.innerHTML = state.leads.map((lead) => {
-        const statusOptions = leadStatus.map((status) => {
-          return `<option value="${status}" ${lead.status === status ? "selected" : ""}>${capitalize(status)}</option>`;
-        }).join("");
+        let qualBadgeClass = "badge-info";
+        if (lead.qualificacao === "Quente") qualBadgeClass = "badge-danger";
+        else if (lead.qualificacao === "Morno") qualBadgeClass = "badge-warning";
 
-        let badgeClass = "badge-info";
-        if (lead.status === "cliente") badgeClass = "badge-success";
-        if (lead.status === "perdido") badgeClass = "badge-danger";
-        if (lead.status === "prospect") badgeClass = "badge-warning";
+        const houveContato = lead.houve_contato
+          ? `<span class="badge badge-success">Sim</span>`
+          : `<span class="badge badge-warning">Não</span>`;
 
         return `
           <article class="card">
             <div>
-              <h3>${escapeHTML(lead.nome)} <span class="badge ${badgeClass}">${capitalize(lead.status)}</span></h3>
-              <p>Contato: ${escapeHTML(lead.contato || "Não informado")}</p>
+              <h3>
+                ${escapeHTML(lead.nome)}
+                ${lead.qualificacao ? `<span class="badge ${qualBadgeClass}">${escapeHTML(lead.qualificacao)}</span>` : ""}
+              </h3>
+              <p>
+                Assessor: <strong>${escapeHTML(lead.ass || "—")}</strong> &nbsp;|&nbsp;
+                Último contato: <strong>${lead.data_ultimo_contato ? formatDate(lead.data_ultimo_contato) : "—"}</strong> &nbsp;|&nbsp;
+                Houve contato: ${houveContato} &nbsp;|&nbsp;
+                PL Estimado: <strong>${lead.pl_estimado ? formatMoney(lead.pl_estimado) : "—"}</strong>
+              </p>
             </div>
             <div class="card-actions">
-              <select data-action="status-lead" data-id="${escapeHTML(lead.id)}">${statusOptions}</select>
               <button class="danger-button" data-action="delete-lead" data-id="${escapeHTML(lead.id)}">Excluir</button>
             </div>
           </article>
@@ -1031,15 +1073,18 @@
       const form = event.currentTarget;
       const formData = new FormData(form);
       const nome = String(formData.get("nome") || "").trim();
-      const contato = String(formData.get("contato") || "").trim();
-      const status = String(formData.get("status") || "lead").trim();
+      const ass = String(formData.get("ass") || "").trim() || null;
+      const qualificacao = String(formData.get("qualificacao") || "").trim() || null;
+      const pl_estimado = formData.get("pl_estimado") ? toNumber(formData.get("pl_estimado")) : null;
+      const data_ultimo_contato = String(formData.get("data_ultimo_contato") || "").trim() || null;
+      const houve_contato = formData.get("houve_contato") === "true";
 
       if (!nome) {
         showMessage("Digite o nome do lead.", "error");
         return;
       }
 
-      const { error } = await supabase.from("leads").insert([{ nome, contato, status }]);
+      const { error } = await supabase.from("leads").insert([{ nome, ass, qualificacao, pl_estimado, data_ultimo_contato, houve_contato }]);
       if (error) throw error;
 
       form.reset();
@@ -1069,14 +1114,6 @@
       $("#lead-form").addEventListener("submit", async (event) => {
         try { await createLead(event); }
         catch (error) { handleError(error, "cadastro do lead"); }
-      });
-
-      $("#leads-lista").addEventListener("change", async (event) => {
-        const select = event.target.closest("select[data-action='status-lead']");
-        if (!select) return;
-
-        try { await updateLeadStatus(select.dataset.id, select.value); }
-        catch (error) { handleError(error, "atualização do lead"); }
       });
 
       $("#leads-lista").addEventListener("click", async (event) => {
@@ -1171,7 +1208,6 @@
         return `
           <tr>
             <td>${formatDate(item.data)}</td>
-            <td>${escapeHTML(item.mes_origem || "")}</td>
             <td>${escapeHTML(item.cliente || "")}</td>
             <td>${escapeHTML(item.aai || "")}</td>
             <td>${escapeHTML(item.codigo || "")}</td>
@@ -1204,7 +1240,6 @@
             <thead>
               <tr>
                 <th>Data</th>
-                <th>Mês</th>
                 <th>Cliente</th>
                 <th>AAI</th>
                 <th>Código</th>

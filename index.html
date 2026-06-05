@@ -526,6 +526,33 @@
           <button class="filter-button" data-filtro="andamento">Em andamento</button>
           <button class="filter-button" data-filtro="concluidas">Concluídas</button>
         </div>
+
+        <div class="filters" style="margin-top:16px;grid-template-columns:repeat(3,1fr) auto auto auto;">
+          <label>
+            Buscar descrição
+            <input id="tarefa-busca" type="text" placeholder="Palavra-chave" />
+          </label>
+          <label>
+            Responsável
+            <select id="tarefa-filtro-responsavel"><option value="">Todos</option></select>
+          </label>
+          <label>
+            Tipo
+            <select id="tarefa-filtro-tipo"><option value="">Todos</option></select>
+          </label>
+          <label>
+            Vencimento de
+            <input id="tarefa-filtro-prazo-de" type="date" />
+          </label>
+          <label>
+            Vencimento até
+            <input id="tarefa-filtro-prazo-ate" type="date" />
+          </label>
+          <label>
+            Limpar
+            <button id="limpar-filtros-tarefas" class="secondary-button" type="button">Limpar</button>
+          </label>
+        </div>
       </div>
 
       <div id="tarefas-lista" class="grid-list"></div>
@@ -572,6 +599,57 @@
           <div></div>
           <button class="primary-button" type="submit">Cadastrar</button>
         </form>
+      </div>
+
+      <div class="panel">
+        <h2>Filtros</h2>
+        <div class="filters" style="grid-template-columns:repeat(4,1fr);">
+          <label>
+            Buscar nome
+            <input id="lead-busca" type="text" placeholder="Nome ou assessor" />
+          </label>
+          <label>
+            Assessor
+            <select id="lead-filtro-ass"><option value="">Todos</option></select>
+          </label>
+          <label>
+            Qualificação
+            <select id="lead-filtro-qualificacao">
+              <option value="">Todas</option>
+              <option value="Quente">Quente</option>
+              <option value="Morno">Morno</option>
+              <option value="Frio">Frio</option>
+            </select>
+          </label>
+          <label>
+            Houve Contato
+            <select id="lead-filtro-houve-contato">
+              <option value="">Todos</option>
+              <option value="true">Sim</option>
+              <option value="false">Não</option>
+            </select>
+          </label>
+          <label>
+            Último contato de
+            <input id="lead-filtro-data-de" type="date" />
+          </label>
+          <label>
+            Último contato até
+            <input id="lead-filtro-data-ate" type="date" />
+          </label>
+          <label>
+            PL mínimo (R$)
+            <input id="lead-filtro-pl-min" type="number" min="0" step="1000" placeholder="0" />
+          </label>
+          <label>
+            PL máximo (R$)
+            <input id="lead-filtro-pl-max" type="number" min="0" step="1000" />
+          </label>
+          <label>
+            Limpar
+            <button id="limpar-filtros-leads" class="secondary-button" type="button">Limpar</button>
+          </label>
+        </div>
       </div>
 
       <div id="leads-lista" class="grid-list"></div>
@@ -687,33 +765,35 @@
         <h2>Consulta de boletas</h2>
         <p class="panel-description">Filtre por assessor, produto, status ou busque por cliente, ativo e código.</p>
 
-        <div class="filters">
+        <div class="filters" style="grid-template-columns:repeat(4,1fr);">
           <label>
             AAI
-            <select id="boleta-filtro-aai">
-              <option value="">Todos</option>
-            </select>
+            <select id="boleta-filtro-aai"><option value="">Todos</option></select>
           </label>
-
           <label>
             Produto
-            <select id="boleta-filtro-produto">
-              <option value="">Todos</option>
-            </select>
+            <select id="boleta-filtro-produto"><option value="">Todos</option></select>
           </label>
-
           <label>
             Status
-            <select id="boleta-filtro-status">
-              <option value="">Todos</option>
-            </select>
+            <select id="boleta-filtro-status"><option value="">Todos</option></select>
           </label>
-
+          <label>
+            Ação
+            <select id="boleta-filtro-acao"><option value="">Todas</option></select>
+          </label>
+          <label>
+            Data de
+            <input id="boleta-filtro-data-de" type="date" />
+          </label>
+          <label>
+            Data até
+            <input id="boleta-filtro-data-ate" type="date" />
+          </label>
           <label>
             Buscar
             <input id="boleta-busca" type="text" placeholder="Cliente, ativo ou código" />
           </label>
-
           <label>
             Limpar filtros
             <button id="limpar-filtros-boletas" class="secondary-button" type="button">Limpar</button>
@@ -745,12 +825,9 @@
       leads: [],
       boletas: [],
       filtroTarefas: "todas",
-      boletaFiltros: {
-        aai: "",
-        produto: "",
-        status: "",
-        busca: ""
-      }
+      tarefaFiltros: { busca: "", responsavel: "", tipo: "", prazo_de: "", prazo_ate: "" },
+      leadFiltros: { busca: "", ass: "", qualificacao: "", houve_contato: "", data_de: "", data_ate: "", pl_min: "", pl_max: "" },
+      boletaFiltros: { aai: "", produto: "", status: "", busca: "", acao: "", data_de: "", data_ate: "" }
     };
 
     const leadStatus = ["lead", "prospect", "cliente", "perdido"];
@@ -891,14 +968,47 @@
       if (error) throw error;
 
       state.tarefas = data || [];
+      renderTarefaFilterOptions();
       renderTarefas();
     }
 
     function getFilteredTarefas() {
-      if (state.filtroTarefas === "pendentes") return state.tarefas.filter((t) => t.status_tarefa === "Pendente");
-      if (state.filtroTarefas === "andamento") return state.tarefas.filter((t) => t.status_tarefa === "Em andamento");
-      if (state.filtroTarefas === "concluidas") return state.tarefas.filter((t) => t.status_tarefa === "Concluída");
-      return state.tarefas;
+      let result = state.tarefas;
+
+      if (state.filtroTarefas === "pendentes") result = result.filter((t) => t.status_tarefa === "Pendente");
+      else if (state.filtroTarefas === "andamento") result = result.filter((t) => t.status_tarefa === "Em andamento");
+      else if (state.filtroTarefas === "concluidas") result = result.filter((t) => t.status_tarefa === "Concluída");
+
+      const { busca, responsavel, tipo, prazo_de, prazo_ate } = state.tarefaFiltros;
+      if (busca) {
+        const s = normalizeText(busca);
+        result = result.filter((t) => normalizeText([t.titulo, t.criada_por].join(" ")).includes(s));
+      }
+      if (responsavel) result = result.filter((t) => t.criada_por === responsavel);
+      if (tipo) result = result.filter((t) => t.tipo === tipo);
+      if (prazo_de) result = result.filter((t) => t.prazo && t.prazo >= prazo_de);
+      if (prazo_ate) result = result.filter((t) => t.prazo && t.prazo <= prazo_ate);
+
+      return result;
+    }
+
+    function getFilteredLeads() {
+      let result = state.leads;
+      const { busca, ass, qualificacao, houve_contato, data_de, data_ate, pl_min, pl_max } = state.leadFiltros;
+
+      if (busca) {
+        const s = normalizeText(busca);
+        result = result.filter((l) => normalizeText([l.nome, l.ass].join(" ")).includes(s));
+      }
+      if (ass) result = result.filter((l) => l.ass === ass);
+      if (qualificacao) result = result.filter((l) => l.qualificacao === qualificacao);
+      if (houve_contato !== "") result = result.filter((l) => l.houve_contato === (houve_contato === "true"));
+      if (data_de) result = result.filter((l) => l.data_ultimo_contato && l.data_ultimo_contato >= data_de);
+      if (data_ate) result = result.filter((l) => l.data_ultimo_contato && l.data_ultimo_contato <= data_ate);
+      if (pl_min !== "") result = result.filter((l) => l.pl_estimado != null && Number(l.pl_estimado) >= Number(pl_min));
+      if (pl_max !== "") result = result.filter((l) => l.pl_estimado != null && Number(l.pl_estimado) <= Number(pl_max));
+
+      return result;
     }
 
     function renderTarefas() {
@@ -1001,6 +1111,20 @@
         });
       });
 
+      $("#tarefa-busca").addEventListener("input", (e) => { state.tarefaFiltros.busca = e.target.value; renderTarefas(); });
+      $("#tarefa-filtro-responsavel").addEventListener("change", (e) => { state.tarefaFiltros.responsavel = e.target.value; renderTarefas(); });
+      $("#tarefa-filtro-tipo").addEventListener("change", (e) => { state.tarefaFiltros.tipo = e.target.value; renderTarefas(); });
+      $("#tarefa-filtro-prazo-de").addEventListener("change", (e) => { state.tarefaFiltros.prazo_de = e.target.value; renderTarefas(); });
+      $("#tarefa-filtro-prazo-ate").addEventListener("change", (e) => { state.tarefaFiltros.prazo_ate = e.target.value; renderTarefas(); });
+      $("#limpar-filtros-tarefas").addEventListener("click", () => {
+        state.tarefaFiltros = { busca: "", responsavel: "", tipo: "", prazo_de: "", prazo_ate: "" };
+        $("#tarefa-busca").value = "";
+        $("#tarefa-filtro-prazo-de").value = "";
+        $("#tarefa-filtro-prazo-ate").value = "";
+        renderTarefaFilterOptions();
+        renderTarefas();
+      });
+
       $("#tarefas-lista").addEventListener("change", async (event) => {
         const select = event.target.closest("select[data-action='status-tarefa']");
         if (!select) return;
@@ -1025,18 +1149,24 @@
       if (error) throw error;
 
       state.leads = data || [];
+      renderLeadFilterOptions();
       renderLeads();
     }
 
     function renderLeads() {
       const lista = $("#leads-lista");
+      const leads = getFilteredLeads();
 
       if (!state.leads.length) {
         lista.innerHTML = `<div class="empty">Nenhum lead cadastrado.</div>`;
         return;
       }
+      if (!leads.length) {
+        lista.innerHTML = `<div class="empty">Nenhum lead encontrado para os filtros aplicados.</div>`;
+        return;
+      }
 
-      lista.innerHTML = state.leads.map((lead) => {
+      lista.innerHTML = leads.map((lead) => {
         let qualBadgeClass = "badge-info";
         if (lead.qualificacao === "Quente") qualBadgeClass = "badge-danger";
         else if (lead.qualificacao === "Morno") qualBadgeClass = "badge-warning";
@@ -1116,6 +1246,27 @@
         catch (error) { handleError(error, "cadastro do lead"); }
       });
 
+      $("#lead-busca").addEventListener("input", (e) => { state.leadFiltros.busca = e.target.value; renderLeads(); });
+      $("#lead-filtro-ass").addEventListener("change", (e) => { state.leadFiltros.ass = e.target.value; renderLeads(); });
+      $("#lead-filtro-qualificacao").addEventListener("change", (e) => { state.leadFiltros.qualificacao = e.target.value; renderLeads(); });
+      $("#lead-filtro-houve-contato").addEventListener("change", (e) => { state.leadFiltros.houve_contato = e.target.value; renderLeads(); });
+      $("#lead-filtro-data-de").addEventListener("change", (e) => { state.leadFiltros.data_de = e.target.value; renderLeads(); });
+      $("#lead-filtro-data-ate").addEventListener("change", (e) => { state.leadFiltros.data_ate = e.target.value; renderLeads(); });
+      $("#lead-filtro-pl-min").addEventListener("input", (e) => { state.leadFiltros.pl_min = e.target.value; renderLeads(); });
+      $("#lead-filtro-pl-max").addEventListener("input", (e) => { state.leadFiltros.pl_max = e.target.value; renderLeads(); });
+      $("#limpar-filtros-leads").addEventListener("click", () => {
+        state.leadFiltros = { busca: "", ass: "", qualificacao: "", houve_contato: "", data_de: "", data_ate: "", pl_min: "", pl_max: "" };
+        $("#lead-busca").value = "";
+        $("#lead-filtro-qualificacao").value = "";
+        $("#lead-filtro-houve-contato").value = "";
+        $("#lead-filtro-data-de").value = "";
+        $("#lead-filtro-data-ate").value = "";
+        $("#lead-filtro-pl-min").value = "";
+        $("#lead-filtro-pl-max").value = "";
+        renderLeadFilterOptions();
+        renderLeads();
+      });
+
       $("#leads-lista").addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-action='delete-lead']");
         if (!button) return;
@@ -1143,20 +1294,37 @@
       const aais = uniqueSorted(state.boletas.map((item) => item.aai));
       const produtos = uniqueSorted(state.boletas.map((item) => item.produto));
       const statusList = uniqueSorted(state.boletas.map((item) => item.status));
+      const acoes = uniqueSorted(state.boletas.map((item) => item.acao));
 
       setSelectOptions($("#boleta-filtro-aai"), aais, state.boletaFiltros.aai);
       setSelectOptions($("#boleta-filtro-produto"), produtos, state.boletaFiltros.produto);
       setSelectOptions($("#boleta-filtro-status"), statusList, state.boletaFiltros.status);
+      setSelectOptions($("#boleta-filtro-acao"), acoes, state.boletaFiltros.acao);
+    }
+
+    function renderTarefaFilterOptions() {
+      const responsaveis = uniqueSorted(state.tarefas.map((t) => t.criada_por).filter(Boolean));
+      const tipos = uniqueSorted(state.tarefas.map((t) => t.tipo).filter(Boolean));
+      setSelectOptions($("#tarefa-filtro-responsavel"), responsaveis, state.tarefaFiltros.responsavel);
+      setSelectOptions($("#tarefa-filtro-tipo"), tipos, state.tarefaFiltros.tipo);
+    }
+
+    function renderLeadFilterOptions() {
+      const assessores = uniqueSorted(state.leads.map((l) => l.ass).filter(Boolean));
+      setSelectOptions($("#lead-filtro-ass"), assessores, state.leadFiltros.ass);
     }
 
     function getFilteredBoletas() {
-      const { aai, produto, status, busca } = state.boletaFiltros;
+      const { aai, produto, status, busca, acao, data_de, data_ate } = state.boletaFiltros;
       const search = normalizeText(busca);
 
       return state.boletas.filter((item) => {
         const matchAAI = !aai || item.aai === aai;
         const matchProduto = !produto || item.produto === produto;
         const matchStatus = !status || item.status === status;
+        const matchAcao = !acao || item.acao === acao;
+        const matchDataDe = !data_de || (item.data && item.data >= data_de);
+        const matchDataAte = !data_ate || (item.data && item.data <= data_ate);
 
         const searchText = normalizeText([
           item.cliente,
@@ -1165,12 +1333,11 @@
           item.produto,
           item.ativo,
           item.status,
-          item.acao,
-          item.mes_origem
+          item.acao
         ].join(" "));
 
         const matchSearch = !search || searchText.includes(search);
-        return matchAAI && matchProduto && matchStatus && matchSearch;
+        return matchAAI && matchProduto && matchStatus && matchAcao && matchDataDe && matchDataAte && matchSearch;
       });
     }
 
@@ -1350,9 +1517,15 @@
         renderBoletas();
       });
 
+      $("#boleta-filtro-acao").addEventListener("change", (e) => { state.boletaFiltros.acao = e.target.value; renderBoletas(); });
+      $("#boleta-filtro-data-de").addEventListener("change", (e) => { state.boletaFiltros.data_de = e.target.value; renderBoletas(); });
+      $("#boleta-filtro-data-ate").addEventListener("change", (e) => { state.boletaFiltros.data_ate = e.target.value; renderBoletas(); });
+
       $("#limpar-filtros-boletas").addEventListener("click", () => {
-        state.boletaFiltros = { aai: "", produto: "", status: "", busca: "" };
+        state.boletaFiltros = { aai: "", produto: "", status: "", busca: "", acao: "", data_de: "", data_ate: "" };
         $("#boleta-busca").value = "";
+        $("#boleta-filtro-data-de").value = "";
+        $("#boleta-filtro-data-ate").value = "";
         renderBoletaFilterOptions();
         renderBoletas();
       });

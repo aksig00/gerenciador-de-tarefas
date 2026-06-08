@@ -763,6 +763,36 @@
       </div>
 
       <div class="panel">
+        <h2>Importar Excel</h2>
+        <p class="panel-description">Selecione ou arraste um arquivo .xlsx com os dados de boletas. O app detecta as colunas automaticamente e mostra uma prévia antes de importar.</p>
+
+        <div id="excel-drop-zone">
+          <input type="file" id="excel-file-input" accept=".xlsx,.xls" style="display:none" />
+          <div id="excel-drop-text">📂 Clique aqui ou arraste um arquivo .xlsx</div>
+        </div>
+
+        <div id="excel-sheet-wrap" style="display:none;margin-top:14px;">
+          <label style="font-size:13px;font-weight:500;">
+            Aba da planilha:&nbsp;
+            <select id="excel-sheet-select" style="height:34px;padding:0 10px;border:1px solid #e5e5e3;border-radius:8px;font-size:13px;"></select>
+          </label>
+        </div>
+
+        <div id="excel-preview-wrap" style="display:none;margin-top:16px;">
+          <div id="excel-preview-info" style="font-size:13px;color:#555;margin-bottom:10px;"></div>
+          <div class="table-wrap" style="max-height:220px;overflow-y:auto;border:1px solid #e5e5e3;border-radius:8px;">
+            <table id="excel-preview-table"></table>
+          </div>
+          <div id="excel-col-map" style="font-size:12px;color:#888;margin-top:8px;"></div>
+          <div class="progress-wrap" id="excel-progress-wrap" style="display:none;margin-top:12px;"><div class="progress-fill" id="excel-progress-fill"></div></div>
+          <div style="margin-top:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <button id="excel-import-btn" class="primary-button">Importar todas as linhas</button>
+            <span id="excel-import-status" class="import-status"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
         <h2>Consulta de boletas</h2>
         <p class="panel-description">Filtre por assessor, produto, status ou busque por cliente, ativo e código.</p>
 
@@ -896,6 +926,7 @@
 
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+    import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
 
     /*
       IMPORTANTE:
@@ -1781,6 +1812,214 @@
       });
     }
 
+    // ── IMPORTAÇÃO EXCEL ─────────────────────────────────────────────────────
+
+    let excelWorkbook = null;
+
+    // Mapeamento flexível de colunas do Excel para campos da tabela boletas
+    function mapBoletaCols(headers) {
+      const norm = s => String(s).toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+
+      const aliases = {
+        data:       ['data', 'date', 'dt'],
+        cliente:    ['cliente', 'client', 'nome'],
+        aai:        ['aai', 'assessor', 'aa', 'advisor'],
+        codigo:     ['codigo', 'cod', 'code', 'codigocliente', 'codigodocliente'],
+        produto:    ['produto', 'product', 'tipo', 'tipodeproduto'],
+        ativo:      ['ativo', 'asset', 'papel', 'ticker', 'instrumento'],
+        negociado:  ['negociado', 'volume', 'valor', 'notional', 'financeiro'],
+        fee_btg:    ['feebtg', 'btg', 'fee_btg', 'febtg', 'taxabtg'],
+        fee_atria:  ['feeatria', 'atria', 'fee_atria', 'featria', 'taxaatria'],
+        roa:        ['roa'],
+        acao:       ['acao', 'action', 'operacao', 'tipo_de_acao'],
+        status:     ['status', 'situacao', 'state'],
+        mes_origem: ['mesorigem', 'mes', 'month', 'mesref', 'mesdereferencia'],
+      };
+
+      const map = {};
+      headers.forEach((h, i) => {
+        const n = norm(h);
+        for (const [field, list] of Object.entries(aliases)) {
+          if (map[field]) continue;
+          if (list.some(a => n === a || n.startsWith(a) || a.startsWith(n))) {
+            map[field] = { index: i, header: h };
+            break;
+          }
+        }
+      });
+      return map;
+    }
+
+    function parseNumeric(val) {
+      if (val === null || val === undefined || val === '') return 0;
+      const s = String(val).replace(/\./g, '').replace(',', '.');
+      const n = parseFloat(s);
+      return isNaN(n) ? 0 : n;
+    }
+
+    function parseDate(val) {
+      if (!val) return null;
+      // SheetJS com raw:false e dateNF já retorna YYYY-MM-DD
+      const s = String(val).trim();
+      // Tenta YYYY-MM-DD direto
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      // Tenta DD/MM/YYYY
+      const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+      return null;
+    }
+
+    function buildBoletaRow(rawRow, colMap) {
+      const get = (field) => {
+        const info = colMap[field];
+        if (!info) return null;
+        const keys = Object.keys(rawRow);
+        return rawRow[keys[info.index]] ?? null;
+      };
+
+      return {
+        data:       parseDate(get('data')),
+        cliente:    String(get('cliente') ?? '').trim() || null,
+        aai:        String(get('aai') ?? '').trim() || null,
+        codigo:     String(get('codigo') ?? '').trim() || null,
+        produto:    String(get('produto') ?? '').trim() || null,
+        ativo:      String(get('ativo') ?? '').trim() || null,
+        negociado:  parseNumeric(get('negociado')),
+        fee_btg:    parseNumeric(get('fee_btg')),
+        fee_atria:  parseNumeric(get('fee_atria')),
+        roa:        parseNumeric(get('roa')),
+        acao:       String(get('acao') ?? '').trim() || null,
+        status:     String(get('status') ?? '').trim().toUpperCase() || null,
+        mes_origem: String(get('mes_origem') ?? '').trim() || null,
+      };
+    }
+
+    function processSheet(sheetName) {
+      const sheet = excelWorkbook.Sheets[sheetName];
+      const raw = XLSX.utils.sheet_to_json(sheet, { raw: false, dateNF: 'YYYY-MM-DD', defval: '' });
+
+      if (!raw.length) {
+        $("#excel-import-status").textContent = "Aba vazia.";
+        $("#excel-preview-wrap").style.display = "none";
+        return;
+      }
+
+      const headers = Object.keys(raw[0]);
+      const colMap = mapBoletaCols(headers);
+      const rows = raw.map(r => buildBoletaRow(r, colMap));
+
+      // Preview — primeiras 5 linhas
+      const previewFields = ['data','cliente','aai','produto','ativo','negociado','fee_atria','status'];
+      const previewHeaders = previewFields.map(f => colMap[f]?.header ?? f);
+
+      const thead = `<thead><tr>${previewFields.map(f => `<th>${escapeHTML(colMap[f]?.header ?? f)}</th>`).join('')}</tr></thead>`;
+      const tbody = rows.slice(0, 5).map(r => {
+        return `<tr>${previewFields.map(f => `<td>${escapeHTML(String(r[f] ?? '—'))}</td>`).join('')}</tr>`;
+      }).join('');
+
+      $("#excel-preview-table").innerHTML = thead + `<tbody>${tbody}</tbody>`;
+      $("#excel-preview-info").textContent = `${rows.length} linha${rows.length !== 1 ? 's' : ''} encontrada${rows.length !== 1 ? 's' : ''} • mostrando as primeiras 5`;
+
+      // Colunas detectadas
+      const detected = Object.entries(colMap).map(([f, v]) => `${f} → "${v.header}"`).join(', ');
+      const missing = Object.keys({ data:1, cliente:1, aai:1, produto:1 }).filter(f => !colMap[f]);
+      $("#excel-col-map").innerHTML = `<strong>Colunas detectadas:</strong> ${detected}` +
+        (missing.length ? `<br><span style="color:#e05a5a">⚠ Não encontradas: ${missing.join(', ')}</span>` : '');
+
+      $("#excel-preview-wrap").style.display = "";
+      $("#excel-import-btn").dataset.rows = JSON.stringify(rows);
+    }
+
+    async function importBoletasFromExcel(rows) {
+      const btn = $("#excel-import-btn");
+      const status = $("#excel-import-status");
+      const progressWrap = $("#excel-progress-wrap");
+      const progressFill = $("#excel-progress-fill");
+
+      btn.disabled = true;
+      progressWrap.style.display = "";
+      status.className = "import-status";
+
+      const chunkSize = 200;
+      let inserted = 0;
+
+      for (let i = 0; i < rows.length; i += chunkSize) {
+        const chunk = rows.slice(i, i + chunkSize);
+        const { error } = await supabase.from('boletas').insert(chunk);
+        if (error) {
+          status.textContent = `Erro na linha ${i + 1}: ${error.message}`;
+          status.className = "import-status err";
+          btn.disabled = false;
+          return;
+        }
+        inserted += chunk.length;
+        const pct = Math.round((inserted / rows.length) * 100);
+        progressFill.style.width = pct + '%';
+        status.textContent = `Importando… ${inserted} de ${rows.length}`;
+      }
+
+      status.textContent = `✓ ${inserted} boleta${inserted !== 1 ? 's' : ''} importada${inserted !== 1 ? 's' : ''} com sucesso.`;
+      status.className = "import-status ok";
+      btn.disabled = false;
+      await loadBoletas();
+    }
+
+    function setupExcelImport() {
+      const dropZone = $("#excel-drop-zone");
+      const fileInput = $("#excel-file-input");
+      const sheetWrap = $("#excel-sheet-wrap");
+      const sheetSelect = $("#excel-sheet-select");
+
+      dropZone.addEventListener("click", () => fileInput.click());
+
+      dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+      dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("drag-over");
+        const file = e.dataTransfer.files[0];
+        if (file) handleFile(file);
+      });
+
+      fileInput.addEventListener("change", () => {
+        if (fileInput.files[0]) handleFile(fileInput.files[0]);
+      });
+
+      sheetSelect.addEventListener("change", () => processSheet(sheetSelect.value));
+
+      $("#excel-import-btn").addEventListener("click", async () => {
+        const rows = JSON.parse($("#excel-import-btn").dataset.rows || "[]");
+        if (!rows.length) return;
+        await importBoletasFromExcel(rows);
+      });
+
+      function handleFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const data = new Uint8Array(e.target.result);
+          excelWorkbook = XLSX.read(data, { type: 'array', cellDates: true });
+          const sheets = excelWorkbook.SheetNames;
+
+          $("#excel-drop-text").textContent = `📄 ${file.name}`;
+          $("#excel-import-status").textContent = "";
+          $("#excel-progress-fill").style.width = "0";
+          $("#excel-progress-wrap").style.display = "none";
+
+          if (sheets.length > 1) {
+            sheetSelect.innerHTML = sheets.map(s => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`).join('');
+            sheetWrap.style.display = "";
+          } else {
+            sheetWrap.style.display = "none";
+          }
+
+          processSheet(sheets[0]);
+        };
+        reader.readAsArrayBuffer(file);
+      }
+    }
+
     async function init() {
       if (
         SUPABASE_URL === "COLE_AQUI_SUA_SUPABASE_URL" ||
@@ -1795,6 +2034,7 @@
       setupLeadEvents();
       setupBoletaEvents();
       setupOportunidadeEvents();
+      setupExcelImport();
 
       $("#boleta-form").elements.data.value = todayISO();
 

@@ -1854,18 +1854,25 @@
 
     function parseNumeric(val) {
       if (val === null || val === undefined || val === '') return 0;
-      const s = String(val).replace(/\./g, '').replace(',', '.');
+      // Se já é número puro (SheetJS retorna número), usa direto
+      if (typeof val === 'number') return val;
+      // String com formato brasileiro
+      const s = String(val).trim().replace(/\./g, '').replace(',', '.');
       const n = parseFloat(s);
       return isNaN(n) ? 0 : n;
     }
 
     function parseDate(val) {
       if (!val) return null;
-      // SheetJS com raw:false e dateNF já retorna YYYY-MM-DD
+      // SheetJS com cellDates:true retorna objeto Date nativo
+      if (val instanceof Date) {
+        const y = val.getFullYear();
+        const mo = String(val.getMonth() + 1).padStart(2, '0');
+        const d = String(val.getDate()).padStart(2, '0');
+        return `${y}-${mo}-${d}`;
+      }
       const s = String(val).trim();
-      // Tenta YYYY-MM-DD direto
       if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-      // Tenta DD/MM/YYYY
       const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
       if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
       return null;
@@ -1898,7 +1905,7 @@
 
     function processSheet(sheetName) {
       const sheet = excelWorkbook.Sheets[sheetName];
-      const raw = XLSX.utils.sheet_to_json(sheet, { raw: false, dateNF: 'YYYY-MM-DD', defval: '' });
+      const raw = XLSX.utils.sheet_to_json(sheet, { raw: true, defval: null });
 
       if (!raw.length) {
         $("#excel-import-status").textContent = "Aba vazia.";
@@ -1908,7 +1915,7 @@
 
       const headers = Object.keys(raw[0]);
       const colMap = mapBoletaCols(headers);
-      const rows = raw.map(r => buildBoletaRow(r, colMap));
+      const rows = raw.map(r => buildBoletaRow(r, colMap)).filter(r => r.cliente || r.data);
 
       // Preview — primeiras 5 linhas
       const previewFields = ['data','cliente','aai','produto','ativo','negociado','fee_atria','status'];

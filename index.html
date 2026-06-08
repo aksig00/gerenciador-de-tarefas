@@ -477,6 +477,7 @@
       <button class="tab-button active" data-tab="tarefas">Tarefas</button>
       <button class="tab-button" data-tab="leads">Leads</button>
       <button class="tab-button" data-tab="boletas">Boletas</button>
+      <button class="tab-button" data-tab="boletas-offshore">Offshore</button>
       <button class="tab-button" data-tab="oportunidades">Oportunidades</button>
     </nav>
 
@@ -836,6 +837,187 @@
         <div id="boletas-lista"></div>
       </div>
     </section>
+    <section id="boletas-offshore" class="tab-panel">
+      <div class="kpi-grid">
+        <div class="kpi">
+          <span>Boletas filtradas</span>
+          <strong id="kpi-offshore-qtd">0</strong>
+        </div>
+
+        <div class="kpi">
+          <span>Negociado</span>
+          <strong id="kpi-offshore-negociado">R$ 0,00</strong>
+        </div>
+
+        <div class="kpi">
+          <span>Fee Átria</span>
+          <strong id="kpi-offshore-fee">R$ 0,00</strong>
+        </div>
+
+        <div class="kpi">
+          <span>Repasse estimado 12%</span>
+          <strong id="kpi-offshore-repasse">R$ 0,00</strong>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Nova boleta offshore</h2>
+        <p class="panel-description">Use este formulário para incluir novas operações offshore.</p>
+
+        <form id="boleta-offshore-form" class="form-grid boletas">
+          <label>
+            Data
+            <input type="date" name="data" required />
+          </label>
+
+          <label>
+            Cliente
+            <input type="text" name="cliente" placeholder="Nome do cliente" required />
+          </label>
+
+          <label>
+            AAI
+            <input type="text" name="aai" placeholder="Assessor" required />
+          </label>
+
+          <label>
+            Código
+            <input type="text" name="codigo" placeholder="Código do cliente" />
+          </label>
+
+          <label>
+            Produto
+            <input type="text" name="produto" placeholder="Trade, L&S, Remessa..." required />
+          </label>
+
+          <label>
+            Ativo
+            <input type="text" name="ativo" placeholder="PETR4, DOL, SWAP..." />
+          </label>
+
+          <label>
+            Negociado
+            <input type="number" name="negociado" step="0.01" min="0" placeholder="100000.00" />
+          </label>
+
+          <label>
+            Fee BTG
+            <input type="number" name="fee_btg" step="0.01" min="0" placeholder="500.00" />
+          </label>
+
+          <label>
+            Fee Átria
+            <input type="number" name="fee_atria" step="0.01" min="0" placeholder="350.00" />
+          </label>
+
+          <label>
+            ROA
+            <input type="number" name="roa" step="0.000001" min="0" placeholder="0.0035" />
+          </label>
+
+          <label>
+            Ação
+            <select name="acao">
+              <option value="">Selecionar...</option>
+              <option value="Aprovado">Aprovado</option>
+              <option value="Executado">Executado</option>
+              <option value="Realocar">Realocar</option>
+              <option value="Vencimento">Vencimento</option>
+              <option value="Pendente">Pendente</option>
+            </select>
+          </label>
+
+          <label>
+            Status
+            <select name="status">
+              <option value="FEITO">FEITO</option>
+              <option value="OPERACIONAL">OPERACIONAL</option>
+              <option value="AGUARDAR">AGUARDAR</option>
+              <option value="PENDENTE">PENDENTE</option>
+            </select>
+          </label>
+
+          <div class="full-row">
+            <button class="primary-button" type="submit">Adicionar boleta</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Importar Excel — Offshore</h2>
+        <p class="panel-description">Selecione ou arraste um arquivo .xlsx com os dados de boletas offshore. O app detecta as colunas automaticamente e mostra uma prévia antes de importar.</p>
+
+        <div id="offshore-drop-zone">
+          <input type="file" id="offshore-file-input" accept=".xlsx,.xls" style="display:none" />
+          <div id="offshore-drop-text">📂 Clique aqui ou arraste um arquivo .xlsx</div>
+        </div>
+
+        <div id="offshore-sheet-wrap" style="display:none;margin-top:14px;">
+          <label style="font-size:13px;font-weight:500;">
+            Aba da planilha:&nbsp;
+            <select id="offshore-sheet-select" style="height:34px;padding:0 10px;border:1px solid #e5e5e3;border-radius:8px;font-size:13px;"></select>
+          </label>
+        </div>
+
+        <div id="offshore-preview-wrap" style="display:none;margin-top:16px;">
+          <div id="offshore-preview-info" style="font-size:13px;color:#555;margin-bottom:10px;"></div>
+          <div class="table-wrap" style="max-height:220px;overflow-y:auto;border:1px solid #e5e5e3;border-radius:8px;">
+            <table id="offshore-preview-table"></table>
+          </div>
+          <div id="offshore-col-map" style="font-size:12px;color:#888;margin-top:8px;"></div>
+          <div class="progress-wrap" id="offshore-progress-wrap" style="display:none;margin-top:12px;"><div class="progress-fill" id="offshore-progress-fill"></div></div>
+          <div style="margin-top:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <button id="offshore-import-btn" class="primary-button">Importar todas as linhas</button>
+            <span id="offshore-import-status" class="import-status"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Consulta de boletas offshore</h2>
+        <p class="panel-description">Filtre boletas offshore por assessor, produto, status ou busque por cliente.</p>
+
+        <div class="filters" style="grid-template-columns:repeat(4,1fr);">
+          <label>
+            AAI
+            <select id="offshore-filtro-aai"><option value="">Todos</option></select>
+          </label>
+          <label>
+            Produto
+            <select id="offshore-filtro-produto"><option value="">Todos</option></select>
+          </label>
+          <label>
+            Status
+            <select id="offshore-filtro-status"><option value="">Todos</option></select>
+          </label>
+          <label>
+            Ação
+            <select id="offshore-filtro-acao"><option value="">Todas</option></select>
+          </label>
+          <label>
+            Data de
+            <input id="offshore-filtro-data-de" type="date" />
+          </label>
+          <label>
+            Data até
+            <input id="offshore-filtro-data-ate" type="date" />
+          </label>
+          <label>
+            Buscar
+            <input id="offshore-busca" type="text" placeholder="Cliente, ativo ou código" />
+          </label>
+          <label>
+            Limpar filtros
+            <button id="limpar-filtros-offshore" class="secondary-button" type="button">Limpar</button>
+          </label>
+        </div>
+
+        <p id="boletas-info" class="muted"></p>
+
+        <div id="boletas-lista"></div>
+      </div>
+    </section>
+
     <section id="oportunidades" class="tab-panel">
       <div class="panel">
         <h2>Oportunidades</h2>
@@ -943,6 +1125,9 @@
       leads: [],
       boletas: [],
       oportunidades: [],
+      offshores: [],
+      offshoreWorkbook: null,
+      offshoreFiltros: { aai: "", produto: "", status: "", busca: "", acao: "", data_de: "", data_ate: "" },
       filtroTarefas: "todas",
       tarefaFiltros: { busca: "", responsavel: "", tipo: "", prazo_de: "", prazo_ate: "" },
       leadFiltros: { busca: "", ass: "", qualificacao: "", houve_contato: "", data_de: "", data_ate: "", pl_min: "", pl_max: "" },
@@ -2027,6 +2212,231 @@
       }
     }
 
+    // ── BOLETAS OFFSHORE ─────────────────────────────────────────────────────
+
+    async function loadOffshores() {
+      const { data, error } = await supabase
+        .from("boletas_offshore")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      state.offshores = data || [];
+      renderOffshoreFilterOptions();
+      renderOffshores();
+    }
+
+    function getFilteredOffshores() {
+      const { aai, produto, status, busca, acao, data_de, data_ate } = state.offshoreFiltros;
+      const search = normalizeText(busca);
+      return state.offshores.filter((item) => {
+        const matchAAI = !aai || item.aai === aai;
+        const matchProduto = !produto || item.produto === produto;
+        const matchStatus = !status || item.status === status;
+        const matchAcao = !acao || item.acao === acao;
+        const matchDataDe = !data_de || (item.data && item.data >= data_de);
+        const matchDataAte = !data_ate || (item.data && item.data <= data_ate);
+        const searchText = normalizeText([item.cliente, item.aai, item.codigo, item.produto, item.ativo, item.status, item.acao].join(" "));
+        const matchSearch = !search || searchText.includes(search);
+        return matchAAI && matchProduto && matchStatus && matchAcao && matchDataDe && matchDataAte && matchSearch;
+      });
+    }
+
+    function renderOffshoreFilterOptions() {
+      const aais = uniqueSorted(state.offshores.map((i) => i.aai));
+      const produtos = uniqueSorted(state.offshores.map((i) => i.produto));
+      const statusList = uniqueSorted(state.offshores.map((i) => i.status));
+      const acoes = uniqueSorted(state.offshores.map((i) => i.acao));
+      setSelectOptions($("#offshore-filtro-aai"), aais, state.offshoreFiltros.aai);
+      setSelectOptions($("#offshore-filtro-produto"), produtos, state.offshoreFiltros.produto);
+      setSelectOptions($("#offshore-filtro-status"), statusList, state.offshoreFiltros.status);
+      setSelectOptions($("#offshore-filtro-acao"), acoes, state.offshoreFiltros.acao);
+    }
+
+    function renderOffshores() {
+      const filtered = getFilteredOffshores();
+      const tbody = $("#offshore-tbody");
+      tbody.innerHTML = filtered.map((item) => `
+        <tr>
+          <td>${formatDate(item.data)}</td>
+          <td>${escapeHTML(item.cliente || "")}</td>
+          <td>${escapeHTML(item.aai || "")}</td>
+          <td>${escapeHTML(item.codigo || "")}</td>
+          <td>${escapeHTML(item.produto || "")}</td>
+          <td>${escapeHTML(item.ativo || "")}</td>
+          <td class="text-right">${formatMoney(item.negociado)}</td>
+          <td class="text-right">${formatMoney(item.fee_btg)}</td>
+          <td class="text-right">${formatMoney(item.fee_atria)}</td>
+          <td class="text-right">${item.roa ?? ""}</td>
+          <td>${escapeHTML(item.acao || "")}</td>
+          <td><select data-action="status-offshore" data-id="${item.id}">${["FEITO","OPERACIONAL","AGUARDAR","PENDENTE"].map(s => `<option ${item.status===s?"selected":""}>${s}</option>`).join("")}</select></td>
+          <td><button class="danger-button btn-sm" data-action="delete-offshore" data-id="${item.id}">Excluir</button></td>
+        </tr>`).join("");
+
+      const total = filtered.length;
+      const negociado = filtered.reduce((a, i) => a + (Number(i.negociado) || 0), 0);
+      const fee = filtered.reduce((a, i) => a + (Number(i.fee_atria) || 0), 0);
+      $("#kpi-offshore-qtd").textContent = total;
+      $("#kpi-offshore-negociado").textContent = formatMoney(negociado);
+      $("#kpi-offshore-fee").textContent = formatMoney(fee);
+      $("#kpi-offshore-repasse").textContent = formatMoney(fee * 0.12);
+    }
+
+    async function createOffshore(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const fd = new FormData(form);
+      const payload = {
+        data: fd.get("data") || null,
+        cliente: fd.get("cliente")?.trim() || null,
+        aai: fd.get("aai")?.trim() || null,
+        codigo: fd.get("codigo")?.trim() || null,
+        produto: fd.get("produto")?.trim() || null,
+        ativo: fd.get("ativo")?.trim() || null,
+        negociado: toNumber(fd.get("negociado")),
+        fee_btg: toNumber(fd.get("fee_btg")),
+        fee_atria: toNumber(fd.get("fee_atria")),
+        roa: toNumber(fd.get("roa")),
+        acao: fd.get("acao")?.trim() || null,
+        status: fd.get("status") || "FEITO",
+      };
+      const { error } = await supabase.from("boletas_offshore").insert([payload]);
+      if (error) throw error;
+      form.reset();
+      await loadOffshores();
+      showMessage("Boleta offshore adicionada.", "success");
+    }
+
+    async function deleteOffshore(id) {
+      if (!window.confirm("Excluir esta boleta offshore?")) return;
+      const { error } = await supabase.from("boletas_offshore").delete().eq("id", id);
+      if (error) throw error;
+      await loadOffshores();
+      showMessage("Boleta excluída.", "success");
+    }
+
+    async function updateOffshoreStatus(id, status) {
+      const { error } = await supabase.from("boletas_offshore").update({ status }).eq("id", id);
+      if (error) throw error;
+      await loadOffshores();
+    }
+
+    async function importOffshoresToSupabase(rows) {
+      const btn = $("#offshore-import-btn");
+      const status = $("#offshore-import-status");
+      const progressWrap = $("#offshore-progress-wrap");
+      const progressFill = $("#offshore-progress-fill");
+      btn.disabled = true;
+      progressWrap.style.display = "";
+      status.className = "import-status";
+      const chunkSize = 200;
+      let inserted = 0;
+      for (let i = 0; i < rows.length; i += chunkSize) {
+        const chunk = rows.slice(i, i + chunkSize);
+        const { error } = await supabase.from("boletas_offshore").insert(chunk);
+        if (error) { status.textContent = `Erro: ${error.message}`; status.className = "import-status err"; btn.disabled = false; return; }
+        inserted += chunk.length;
+        progressFill.style.width = Math.round((inserted / rows.length) * 100) + "%";
+        status.textContent = `Importando… ${inserted} de ${rows.length}`;
+      }
+      status.textContent = `✓ ${inserted} boleta${inserted !== 1 ? "s" : ""} importada${inserted !== 1 ? "s" : ""} com sucesso.`;
+      status.className = "import-status ok";
+      btn.disabled = false;
+      await loadOffshores();
+    }
+
+    function setupOffshoreExcelImport() {
+      const dropZone = $("#offshore-drop-zone");
+      const fileInput = $("#offshore-file-input");
+      const sheetWrap = $("#offshore-sheet-wrap");
+      const sheetSelect = $("#offshore-sheet-select");
+
+      dropZone.addEventListener("click", () => fileInput.click());
+      dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+      dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+      dropZone.addEventListener("drop", (e) => { e.preventDefault(); dropZone.classList.remove("drag-over"); if (e.dataTransfer.files[0]) handleOffshoreFile(e.dataTransfer.files[0]); });
+      fileInput.addEventListener("change", () => { if (fileInput.files[0]) handleOffshoreFile(fileInput.files[0]); });
+      sheetSelect.addEventListener("change", () => processOffshoreSheet(sheetSelect.value));
+      $("#offshore-import-btn").addEventListener("click", async () => {
+        const rows = JSON.parse($("#offshore-import-btn").dataset.rows || "[]");
+        if (rows.length) await importOffshoresToSupabase(rows);
+      });
+
+      function handleOffshoreFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const data = new Uint8Array(e.target.result);
+          state.offshoreWorkbook = XLSX.read(data, { type: "array", cellDates: true });
+          const sheets = state.offshoreWorkbook.SheetNames;
+          $("#offshore-drop-text").textContent = `📄 ${file.name}`;
+          $("#offshore-import-status").textContent = "";
+          $("#offshore-progress-fill").style.width = "0";
+          $("#offshore-progress-wrap").style.display = "none";
+          if (sheets.length > 1) {
+            sheetSelect.innerHTML = sheets.map(s => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`).join("");
+            sheetWrap.style.display = "";
+          } else {
+            sheetWrap.style.display = "none";
+          }
+          processOffshoreSheet(sheets[0]);
+        };
+        reader.readAsArrayBuffer(file);
+      }
+    }
+
+    function processOffshoreSheet(sheetName) {
+      const sheet = state.offshoreWorkbook.Sheets[sheetName];
+      const raw = XLSX.utils.sheet_to_json(sheet, { raw: true, defval: null });
+      if (!raw.length) { $("#offshore-import-status").textContent = "Aba vazia."; return; }
+      const headers = Object.keys(raw[0]);
+      const colMap = mapBoletaCols(headers);
+      const rows = raw.map(r => buildBoletaRow(r, colMap)).filter(r => r.cliente || r.data);
+      const previewFields = ["data","cliente","aai","produto","ativo","negociado","fee_atria","status"];
+      const thead = `<thead><tr>${previewFields.map(f => `<th>${escapeHTML(colMap[f]?.header ?? f)}</th>`).join("")}</tr></thead>`;
+      const tbody = rows.slice(0, 5).map(r => `<tr>${previewFields.map(f => `<td>${escapeHTML(String(r[f] ?? "—"))}</td>`).join("")}</tr>`).join("");
+      $("#offshore-preview-table").innerHTML = thead + `<tbody>${tbody}</tbody>`;
+      $("#offshore-preview-info").textContent = `${rows.length} linha${rows.length !== 1 ? "s" : ""} encontrada${rows.length !== 1 ? "s" : ""} • mostrando as primeiras 5`;
+      const detected = Object.entries(colMap).map(([f, v]) => `${f} → "${v.header}"`).join(", ");
+      $("#offshore-col-map").innerHTML = `<strong>Colunas detectadas:</strong> ${detected}`;
+      $("#offshore-preview-wrap").style.display = "";
+      $("#offshore-import-btn").dataset.rows = JSON.stringify(rows);
+    }
+
+    function setupOffshoreEvents() {
+      $("#boleta-offshore-form").addEventListener("submit", async (e) => {
+        try { await createOffshore(e); } catch (err) { handleError(err, "criação da boleta offshore"); }
+      });
+
+      $("#offshore-filtro-aai").addEventListener("change", (e) => { state.offshoreFiltros.aai = e.target.value; renderOffshores(); });
+      $("#offshore-filtro-produto").addEventListener("change", (e) => { state.offshoreFiltros.produto = e.target.value; renderOffshores(); });
+      $("#offshore-filtro-status").addEventListener("change", (e) => { state.offshoreFiltros.status = e.target.value; renderOffshores(); });
+      $("#offshore-filtro-acao").addEventListener("change", (e) => { state.offshoreFiltros.acao = e.target.value; renderOffshores(); });
+      $("#offshore-filtro-data-de").addEventListener("change", (e) => { state.offshoreFiltros.data_de = e.target.value; renderOffshores(); });
+      $("#offshore-filtro-data-ate").addEventListener("change", (e) => { state.offshoreFiltros.data_ate = e.target.value; renderOffshores(); });
+      $("#offshore-busca").addEventListener("input", (e) => { state.offshoreFiltros.busca = e.target.value; renderOffshores(); });
+      $("#limpar-filtros-offshore").addEventListener("click", () => {
+        state.offshoreFiltros = { aai: "", produto: "", status: "", busca: "", acao: "", data_de: "", data_ate: "" };
+        $("#offshore-busca").value = "";
+        $("#offshore-filtro-data-de").value = "";
+        $("#offshore-filtro-data-ate").value = "";
+        renderOffshoreFilterOptions();
+        renderOffshores();
+      });
+
+      $("#offshore-tbody").addEventListener("change", async (e) => {
+        const sel = e.target.closest("select[data-action='status-offshore']");
+        if (!sel) return;
+        try { await updateOffshoreStatus(sel.dataset.id, sel.value); } catch (err) { handleError(err, "atualização"); }
+      });
+
+      $("#offshore-tbody").addEventListener("click", async (e) => {
+        const btn = e.target.closest("button[data-action='delete-offshore']");
+        if (!btn) return;
+        try { await deleteOffshore(btn.dataset.id); } catch (err) { handleError(err, "exclusão"); }
+      });
+
+      setupOffshoreExcelImport();
+    }
+
     async function init() {
       if (
         SUPABASE_URL === "COLE_AQUI_SUA_SUPABASE_URL" ||
@@ -2041,13 +2451,14 @@
       setupLeadEvents();
       setupBoletaEvents();
       setupOportunidadeEvents();
+      setupOffshoreEvents();
       setupExcelImport();
 
       $("#boleta-form").elements.data.value = todayISO();
 
       try {
         showMessage("Carregando dados...", "info");
-        await Promise.all([loadTarefas(), loadLeads(), loadBoletas(), loadOportunidades()]);
+        await Promise.all([loadTarefas(), loadLeads(), loadBoletas(), loadOportunidades(), loadOffshores()]);
         showMessage("Dados carregados com sucesso.", "success");
       } catch (error) {
         handleError(error, "carga inicial dos dados");

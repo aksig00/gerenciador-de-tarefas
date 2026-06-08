@@ -805,6 +805,92 @@
         <div id="boletas-lista"></div>
       </div>
     </section>
+    <section id="oportunidades" class="tab-panel">
+      <div class="panel">
+        <h2>Oportunidades</h2>
+        <p class="panel-description">Registre oportunidades comerciais com volume e receita estimados.</p>
+
+        <form id="oportunidade-form" class="form-grid" style="grid-template-columns:1.5fr 1fr 1fr 1fr 1fr 1fr 2fr auto;align-items:end;">
+          <label>
+            Cliente
+            <input type="text" name="cliente" placeholder="Nome do cliente" required />
+          </label>
+          <label>
+            Assessor
+            <input type="text" name="assessor" placeholder="Ex: Rafael" />
+          </label>
+          <label>
+            Produto
+            <input type="text" name="produto" placeholder="Ex: CDB, FII" />
+          </label>
+          <label>
+            Ativo
+            <input type="text" name="ativo" placeholder="Ex: MXRF11" />
+          </label>
+          <label>
+            Volume (R$)
+            <input type="number" name="volume" min="0" step="1000" placeholder="0" />
+          </label>
+          <label>
+            Receita (R$)
+            <input type="number" name="receita" min="0" step="100" placeholder="0" />
+          </label>
+          <label>
+            Observação
+            <input type="text" name="observacao" placeholder="Detalhe adicional" />
+          </label>
+          <button class="primary-button" type="submit">Adicionar</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Filtros</h2>
+        <div class="filters" style="grid-template-columns:repeat(4,1fr);">
+          <label>
+            Buscar
+            <input id="oportunidade-busca" type="text" placeholder="Cliente, ativo ou produto" />
+          </label>
+          <label>
+            Assessor
+            <select id="oportunidade-filtro-assessor"><option value="">Todos</option></select>
+          </label>
+          <label>
+            Produto
+            <select id="oportunidade-filtro-produto"><option value="">Todos</option></select>
+          </label>
+          <label>
+            Limpar
+            <button id="limpar-filtros-oportunidades" class="secondary-button" type="button">Limpar</button>
+          </label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="table-wrap">
+          <table id="oportunidades-table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Assessor</th>
+                <th>Produto</th>
+                <th>Ativo</th>
+                <th class="text-right">Volume</th>
+                <th class="text-right">Receita</th>
+                <th>Observação</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="oportunidades-tbody"></tbody>
+          </table>
+          <div id="oportunidades-empty" class="empty" style="display:none">Nenhuma oportunidade encontrada.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="kpis" id="oportunidades-kpis"></div>
+      </div>
+    </section>
+
   </main>
 
   <script type="module">
@@ -824,10 +910,12 @@
       tarefas: [],
       leads: [],
       boletas: [],
+      oportunidades: [],
       filtroTarefas: "todas",
       tarefaFiltros: { busca: "", responsavel: "", tipo: "", prazo_de: "", prazo_ate: "" },
       leadFiltros: { busca: "", ass: "", qualificacao: "", houve_contato: "", data_de: "", data_ate: "", pl_min: "", pl_max: "" },
-      boletaFiltros: { aai: "", produto: "", status: "", busca: "", acao: "", data_de: "", data_ate: "" }
+      boletaFiltros: { aai: "", produto: "", status: "", busca: "", acao: "", data_de: "", data_ate: "" },
+      oportunidadeFiltros: { busca: "", assessor: "", produto: "" }
     };
 
     const leadStatus = ["lead", "prospect", "cliente", "perdido"];
@@ -1547,6 +1635,151 @@
       });
     }
 
+    async function loadOportunidades() {
+      const { data, error } = await supabase
+        .from("oportunidades")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      state.oportunidades = data || [];
+      renderOportunidadeFilterOptions();
+      renderOportunidades();
+    }
+
+    function getFilteredOportunidades() {
+      let result = state.oportunidades;
+      const { busca, assessor, produto } = state.oportunidadeFiltros;
+
+      if (busca) {
+        const s = normalizeText(busca);
+        result = result.filter((o) => normalizeText([o.cliente, o.ativo, o.produto, o.assessor, o.observacao].join(" ")).includes(s));
+      }
+      if (assessor) result = result.filter((o) => o.assessor === assessor);
+      if (produto) result = result.filter((o) => o.produto === produto);
+
+      return result;
+    }
+
+    function renderOportunidadeFilterOptions() {
+      const assessores = uniqueSorted(state.oportunidades.map((o) => o.assessor).filter(Boolean));
+      const produtos = uniqueSorted(state.oportunidades.map((o) => o.produto).filter(Boolean));
+      setSelectOptions($("#oportunidade-filtro-assessor"), assessores, state.oportunidadeFiltros.assessor);
+      setSelectOptions($("#oportunidade-filtro-produto"), produtos, state.oportunidadeFiltros.produto);
+    }
+
+    function renderOportunidades() {
+      const tbody = $("#oportunidades-tbody");
+      const empty = $("#oportunidades-empty");
+      const kpis = $("#oportunidades-kpis");
+      const oportunidades = getFilteredOportunidades();
+
+      if (!oportunidades.length) {
+        tbody.innerHTML = "";
+        empty.style.display = "";
+        kpis.innerHTML = "";
+        return;
+      }
+
+      empty.style.display = "none";
+
+      tbody.innerHTML = oportunidades.map((o) => `
+        <tr>
+          <td>${escapeHTML(o.cliente || "—")}</td>
+          <td>${escapeHTML(o.assessor || "—")}</td>
+          <td>${escapeHTML(o.produto || "—")}</td>
+          <td>${escapeHTML(o.ativo || "—")}</td>
+          <td class="text-right">${o.volume ? formatMoney(o.volume) : "—"}</td>
+          <td class="text-right">${o.receita ? formatMoney(o.receita) : "—"}</td>
+          <td>${escapeHTML(o.observacao || "—")}</td>
+          <td>
+            <button class="danger-button btn-sm" data-action="delete-oportunidade" data-id="${escapeHTML(o.id)}">Excluir</button>
+          </td>
+        </tr>
+      `).join("");
+
+      const totalVolume = oportunidades.reduce((acc, o) => acc + (Number(o.volume) || 0), 0);
+      const totalReceita = oportunidades.reduce((acc, o) => acc + (Number(o.receita) || 0), 0);
+
+      kpis.innerHTML = `
+        <div class="kpi-card">
+          <div class="kpi-label">Oportunidades</div>
+          <div class="kpi-value">${oportunidades.length}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Volume total</div>
+          <div class="kpi-value">${formatMoney(totalVolume)}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Receita total</div>
+          <div class="kpi-value">${formatMoney(totalReceita)}</div>
+        </div>
+      `;
+    }
+
+    async function createOportunidade(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const formData = new FormData(form);
+
+      const cliente = String(formData.get("cliente") || "").trim();
+      if (!cliente) { showMessage("Digite o nome do cliente.", "error"); return; }
+
+      const payload = {
+        cliente,
+        assessor: String(formData.get("assessor") || "").trim() || null,
+        produto: String(formData.get("produto") || "").trim() || null,
+        ativo: String(formData.get("ativo") || "").trim() || null,
+        volume: formData.get("volume") ? toNumber(formData.get("volume")) : null,
+        receita: formData.get("receita") ? toNumber(formData.get("receita")) : null,
+        observacao: String(formData.get("observacao") || "").trim() || null,
+      };
+
+      const { error } = await supabase.from("oportunidades").insert([payload]);
+      if (error) throw error;
+
+      form.reset();
+      await loadOportunidades();
+      showMessage("Oportunidade registrada com sucesso.", "success");
+    }
+
+    async function deleteOportunidade(id) {
+      const confirmed = window.confirm("Deseja excluir esta oportunidade?");
+      if (!confirmed) return;
+
+      const { error } = await supabase.from("oportunidades").delete().eq("id", id);
+      if (error) throw error;
+
+      await loadOportunidades();
+      showMessage("Oportunidade excluída.", "success");
+    }
+
+    function setupOportunidadeEvents() {
+      $("#oportunidade-form").addEventListener("submit", async (event) => {
+        try { await createOportunidade(event); }
+        catch (error) { handleError(error, "registro da oportunidade"); }
+      });
+
+      $("#oportunidade-busca").addEventListener("input", (e) => { state.oportunidadeFiltros.busca = e.target.value; renderOportunidades(); });
+      $("#oportunidade-filtro-assessor").addEventListener("change", (e) => { state.oportunidadeFiltros.assessor = e.target.value; renderOportunidades(); });
+      $("#oportunidade-filtro-produto").addEventListener("change", (e) => { state.oportunidadeFiltros.produto = e.target.value; renderOportunidades(); });
+
+      $("#limpar-filtros-oportunidades").addEventListener("click", () => {
+        state.oportunidadeFiltros = { busca: "", assessor: "", produto: "" };
+        $("#oportunidade-busca").value = "";
+        renderOportunidadeFilterOptions();
+        renderOportunidades();
+      });
+
+      $("#oportunidades-tbody").addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-action='delete-oportunidade']");
+        if (!button) return;
+        try { await deleteOportunidade(button.dataset.id); }
+        catch (error) { handleError(error, "exclusão da oportunidade"); }
+      });
+    }
+
     async function init() {
       if (
         SUPABASE_URL === "COLE_AQUI_SUA_SUPABASE_URL" ||
@@ -1560,12 +1793,13 @@
       setupTarefaEvents();
       setupLeadEvents();
       setupBoletaEvents();
+      setupOportunidadeEvents();
 
       $("#boleta-form").elements.data.value = todayISO();
 
       try {
         showMessage("Carregando dados...", "info");
-        await Promise.all([loadTarefas(), loadLeads(), loadBoletas()]);
+        await Promise.all([loadTarefas(), loadLeads(), loadBoletas(), loadOportunidades()]);
         showMessage("Dados carregados com sucesso.", "success");
       } catch (error) {
         handleError(error, "carga inicial dos dados");

@@ -1912,7 +1912,6 @@
       setupBoletaSection('offshore','offshores','ofiltros','boletas_offshore','offshore-form','of', loadOffshores);
       setupExcelImporter({ dropId:'excel-drop', tableName:'boletas', onImported: loadBoletas });
       setupExcelImporter({ dropId:'os-drop', tableName:'boletas_offshore', onImported: loadOffshores });
-      setupExcelImport();
 
       $("#boleta-form").elements.data.value = todayISO();
 

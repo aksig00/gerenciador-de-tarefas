@@ -451,6 +451,31 @@
         font-size: 26px;
       }
     }
+
+    #excel-drop-zone, #offshore-drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    #excel-drop-zone:hover, #excel-drop-zone.drag-over,
+    #offshore-drop-zone:hover, #offshore-drop-zone.drag-over {
+      background: rgba(56,189,248,0.05);
+      border-color: var(--primary);
+      color: var(--text);
+    }
+    .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .preview-table th { background: rgba(31,41,55,0.95); padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--border); font-weight: 500; color: #dbeafe; }
+    .preview-table td { padding: 4px 8px; border-bottom: 1px solid var(--border); color: #e5e7eb; }
+    .import-status { font-size: 13px; color: var(--muted); }
+    .import-status.ok { color: var(--success); }
+    .import-status.err { color: var(--danger); }
+    .progress-wrap { height: 6px; background: var(--border); border-radius: 99px; margin-top: 8px; overflow: hidden; }
+    .progress-fill { height: 6px; background: var(--primary); border-radius: 99px; transition: width 0.2s; width: 0; }
   </style>
 </head>
 
@@ -468,6 +493,8 @@
     <nav class="tabs">
       <button class="tab-button active" data-tab="tarefas">Tarefas</button>
       <button class="tab-button" data-tab="leads">Leads</button>
+      <button class="tab-button" data-tab="boletas">Boletas</button>
+      <button class="tab-button" data-tab="offshore">Offshore</button>
       <button class="tab-button" data-tab="oportunidades">Oportunidades</button>
     </nav>
 
@@ -650,6 +677,206 @@
     
     
 
+
+    <section id="boletas" class="tab-panel">
+      <div class="kpi-grid">
+        <div class="kpi"><span>Boletas filtradas</span><strong id="kpi-boletas-qtd">0</strong></div>
+        <div class="kpi"><span>Negociado</span><strong id="kpi-boletas-negociado">R$ 0,00</strong></div>
+        <div class="kpi"><span>Fee Átria</span><strong id="kpi-boletas-fee">R$ 0,00</strong></div>
+        <div class="kpi"><span>Repasse estimado 12%</span><strong id="kpi-boletas-repasse">R$ 0,00</strong></div>
+      </div>
+
+      <div class="panel">
+        <h2>Importar Excel — Boletas</h2>
+        <p class="panel-description">Selecione ou arraste um arquivo .xlsx. O app detecta as colunas automaticamente e mostra uma prévia antes de importar.</p>
+        <div id="excel-drop">
+          <input type="file" id="excel-drop-input" accept=".xlsx,.xls" style="display:none" />
+          <div id="excel-drop-text">📂 Clique aqui ou arraste um arquivo .xlsx</div>
+        </div>
+        <div id="excel-drop-sheet-wrap" style="display:none;margin-top:14px;">
+          <label style="font-size:13px;font-weight:500;">Aba da planilha:&nbsp;
+            <select id="excel-drop-sheet-select" style="height:34px;padding:0 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:#020617;color:var(--text);"></select>
+          </label>
+        </div>
+        <div id="excel-drop-preview-wrap" style="display:none;margin-top:16px;">
+          <div id="excel-drop-preview-info" style="font-size:13px;color:var(--muted);margin-bottom:10px;"></div>
+          <div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+            <table class="preview-table" id="excel-drop-preview-table"></table>
+          </div>
+          <div id="excel-drop-col-map" style="font-size:12px;color:var(--muted);margin-top:8px;"></div>
+          <div class="progress-wrap" id="excel-drop-progress-wrap" style="display:none;margin-top:12px;"><div class="progress-fill" id="excel-drop-progress-fill"></div></div>
+          <div style="margin-top:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <button id="excel-import-btn" class="primary-button">Importar todas as linhas</button>
+            <span id="excel-import-status" class="import-status"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Nova boleta Boletas</h2>
+        <form id="boleta-form" class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto;align-items:end;">
+          <label>Data<input type="date" name="data" /></label>
+          <label>Cliente<input type="text" name="cliente" placeholder="Nome do cliente" /></label>
+          <label>AAI<input type="text" name="aai" placeholder="Ex: Rafael" /></label>
+          <label>Produto<input type="text" name="produto" placeholder="Ex: SOC" /></label>
+          <label>Ativo<input type="text" name="ativo" placeholder="Ex: PETR4" /></label>
+          <label>Negociado (R$)<input type="number" name="negociado" min="0" step="0.01" placeholder="0" /></label>
+          <label>Fee BTG<input type="number" name="fee_btg" min="0" step="0.01" placeholder="0" /></label>
+          <label>Fee Átria<input type="number" name="fee_atria" min="0" step="0.01" placeholder="0" /></label>
+          <label>ROA<input type="number" name="roa" min="0" step="0.0001" placeholder="0" /></label>
+          <label>Ação
+            <select name="acao">
+              <option value="">Selecionar...</option>
+              <option value="Aprovado">Aprovado</option>
+              <option value="Executado">Executado</option>
+              <option value="Realocar">Realocar</option>
+              <option value="Vencimento">Vencimento</option>
+              <option value="Pendente">Pendente</option>
+            </select>
+          </label>
+          <label>Status
+            <select name="status">
+              <option value="FEITO">FEITO</option>
+              <option value="OPERACIONAL">OPERACIONAL</option>
+              <option value="AGUARDAR">AGUARDAR</option>
+              <option value="PENDENTE">PENDENTE</option>
+            </select>
+          </label>
+          <button class="primary-button" type="submit" style="grid-column:span 2;">Adicionar</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Filtros</h2>
+        <div class="filters" style="grid-template-columns:repeat(4,1fr);">
+          <label>Buscar<input id="bf-busca" type="text" placeholder="Cliente, ativo ou produto" /></label>
+          <label>AAI<select id="bf-aai"><option value="">Todos</option></select></label>
+          <label>Produto<select id="bf-produto"><option value="">Todos</option></select></label>
+          <label>Status<select id="bf-status"><option value="">Todos</option></select></label>
+          <label>Ação<select id="bf-acao"><option value="">Todas</option></select></label>
+          <label>Data de<input id="bf-data-de" type="date" /></label>
+          <label>Data até<input id="bf-data-ate" type="date" /></label>
+          <label>Limpar<button id="bf-limpar" class="secondary-button" type="button">Limpar</button></label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th><th>Cliente</th><th>AAI</th><th>Código</th>
+                <th>Produto</th><th>Ativo</th>
+                <th class="number">Negociado</th><th class="number">Fee BTG</th>
+                <th class="number">Fee Átria</th><th class="number">ROA</th>
+                <th>Ação</th><th>Status</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="boletas-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="offshore" class="tab-panel">
+      <div class="kpi-grid">
+        <div class="kpi"><span>Boletas filtradas</span><strong id="kpi-offshore-qtd">0</strong></div>
+        <div class="kpi"><span>Negociado</span><strong id="kpi-offshore-negociado">R$ 0,00</strong></div>
+        <div class="kpi"><span>Fee Átria</span><strong id="kpi-offshore-fee">R$ 0,00</strong></div>
+        <div class="kpi"><span>Repasse estimado 12%</span><strong id="kpi-offshore-repasse">R$ 0,00</strong></div>
+      </div>
+
+      <div class="panel">
+        <h2>Importar Excel — Offshore</h2>
+        <p class="panel-description">Selecione ou arraste um arquivo .xlsx. O app detecta as colunas automaticamente e mostra uma prévia antes de importar.</p>
+        <div id="os-drop">
+          <input type="file" id="os-drop-input" accept=".xlsx,.xls" style="display:none" />
+          <div id="os-drop-text">📂 Clique aqui ou arraste um arquivo .xlsx</div>
+        </div>
+        <div id="os-drop-sheet-wrap" style="display:none;margin-top:14px;">
+          <label style="font-size:13px;font-weight:500;">Aba da planilha:&nbsp;
+            <select id="os-drop-sheet-select" style="height:34px;padding:0 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:#020617;color:var(--text);"></select>
+          </label>
+        </div>
+        <div id="os-drop-preview-wrap" style="display:none;margin-top:16px;">
+          <div id="os-drop-preview-info" style="font-size:13px;color:var(--muted);margin-bottom:10px;"></div>
+          <div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+            <table class="preview-table" id="os-drop-preview-table"></table>
+          </div>
+          <div id="os-drop-col-map" style="font-size:12px;color:var(--muted);margin-top:8px;"></div>
+          <div class="progress-wrap" id="os-drop-progress-wrap" style="display:none;margin-top:12px;"><div class="progress-fill" id="os-drop-progress-fill"></div></div>
+          <div style="margin-top:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <button id="os-import-btn" class="primary-button">Importar todas as linhas</button>
+            <span id="os-import-status" class="import-status"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Nova boleta Offshore</h2>
+        <form id="offshore-form" class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto;align-items:end;">
+          <label>Data<input type="date" name="data" /></label>
+          <label>Cliente<input type="text" name="cliente" placeholder="Nome do cliente" /></label>
+          <label>AAI<input type="text" name="aai" placeholder="Ex: Rafael" /></label>
+          <label>Produto<input type="text" name="produto" placeholder="Ex: SOC" /></label>
+          <label>Ativo<input type="text" name="ativo" placeholder="Ex: PETR4" /></label>
+          <label>Negociado (R$)<input type="number" name="negociado" min="0" step="0.01" placeholder="0" /></label>
+          <label>Fee BTG<input type="number" name="fee_btg" min="0" step="0.01" placeholder="0" /></label>
+          <label>Fee Átria<input type="number" name="fee_atria" min="0" step="0.01" placeholder="0" /></label>
+          <label>ROA<input type="number" name="roa" min="0" step="0.0001" placeholder="0" /></label>
+          <label>Ação
+            <select name="acao">
+              <option value="">Selecionar...</option>
+              <option value="Aprovado">Aprovado</option>
+              <option value="Executado">Executado</option>
+              <option value="Realocar">Realocar</option>
+              <option value="Vencimento">Vencimento</option>
+              <option value="Pendente">Pendente</option>
+            </select>
+          </label>
+          <label>Status
+            <select name="status">
+              <option value="FEITO">FEITO</option>
+              <option value="OPERACIONAL">OPERACIONAL</option>
+              <option value="AGUARDAR">AGUARDAR</option>
+              <option value="PENDENTE">PENDENTE</option>
+            </select>
+          </label>
+          <button class="primary-button" type="submit" style="grid-column:span 2;">Adicionar</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Filtros</h2>
+        <div class="filters" style="grid-template-columns:repeat(4,1fr);">
+          <label>Buscar<input id="of-busca" type="text" placeholder="Cliente, ativo ou produto" /></label>
+          <label>AAI<select id="of-aai"><option value="">Todos</option></select></label>
+          <label>Produto<select id="of-produto"><option value="">Todos</option></select></label>
+          <label>Status<select id="of-status"><option value="">Todos</option></select></label>
+          <label>Ação<select id="of-acao"><option value="">Todas</option></select></label>
+          <label>Data de<input id="of-data-de" type="date" /></label>
+          <label>Data até<input id="of-data-ate" type="date" /></label>
+          <label>Limpar<button id="of-limpar" class="secondary-button" type="button">Limpar</button></label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th><th>Cliente</th><th>AAI</th><th>Código</th>
+                <th>Produto</th><th>Ativo</th>
+                <th class="number">Negociado</th><th class="number">Fee BTG</th>
+                <th class="number">Fee Átria</th><th class="number">ROA</th>
+                <th>Ação</th><th>Status</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="offshore-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
     <section id="oportunidades" class="tab-panel">
       <div class="panel">
         <h2>Oportunidades</h2>
@@ -740,6 +967,7 @@
 
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+    import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
 
     /*
       IMPORTANTE:
@@ -758,7 +986,11 @@
       filtroTarefas: "todas",
       tarefaFiltros: { busca: "", responsavel: "", tipo: "", prazo_de: "", prazo_ate: "" },
       leadFiltros: { busca: "", ass: "", qualificacao: "", houve_contato: "", data_de: "", data_ate: "", pl_min: "", pl_max: "" },
-      oportunidadeFiltros: { busca: "", assessor: "", produto: "" }
+      oportunidadeFiltros: { busca: "", assessor: "", produto: "" },
+      boletas: [],
+      bfiltros: { busca: "", aai: "", produto: "", status: "", acao: "", data_de: "", data_ate: "" },
+      offshores: [],
+      ofiltros: { busca: "", aai: "", produto: "", status: "", acao: "", data_de: "", data_ate: "" }
     };
 
     const leadStatus = ["lead", "prospect", "cliente", "perdido"];
@@ -1367,6 +1599,290 @@
     }
 
 
+
+    // ── BOLETAS / OFFSHORE ──────────────────────────────────────────────────
+
+    function mapBoletaCols(headers) {
+      const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+      const aliases = {
+        data:       ['data','date','dt'],
+        cliente:    ['cliente','client','nome'],
+        aai:        ['aai','assessor','aa'],
+        codigo:     ['codigo','cod','code','codigocliente'],
+        produto:    ['produto','product','tipo'],
+        ativo:      ['ativo','asset','papel','ticker'],
+        negociado:  ['negociado','volume','valor','notional'],
+        fee_btg:    ['feebtg','btg','fee_btg','febtg'],
+        fee_atria:  ['feeatria','atria','fee_atria','featria'],
+        roa:        ['roa'],
+        acao:       ['acao','action','operacao'],
+        status:     ['status','situacao'],
+        mes_origem: ['mesorigem','mes','month'],
+      };
+      const map = {};
+      headers.forEach((h, i) => {
+        const n = norm(h);
+        for (const [field, list] of Object.entries(aliases)) {
+          if (map[field]) continue;
+          if (list.some(a => n === a || n.startsWith(a) || a.startsWith(n))) { map[field] = { index: i, header: h }; break; }
+        }
+      });
+      return map;
+    }
+
+    function parseNum(val) {
+      if (val === null || val === undefined || val === '') return 0;
+      if (typeof val === 'number') return val;
+      const s = String(val).trim().replace(/\./g,'').replace(',','.');
+      const n = parseFloat(s);
+      return isNaN(n) ? 0 : n;
+    }
+
+    function parseDateVal(val) {
+      if (!val) return null;
+      if (val instanceof Date) {
+        const y = val.getFullYear(), mo = String(val.getMonth()+1).padStart(2,'0'), d = String(val.getDate()).padStart(2,'0');
+        return `${y}-${mo}-${d}`;
+      }
+      const s = String(val).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+      return null;
+    }
+
+    function buildBoletaRow(rawRow, colMap) {
+      const keys = Object.keys(rawRow);
+      const get = f => { const info = colMap[f]; return info ? (rawRow[keys[info.index]] ?? null) : null; };
+      return {
+        data: parseDateVal(get('data')),
+        cliente: String(get('cliente') ?? '').trim() || null,
+        aai: String(get('aai') ?? '').trim() || null,
+        codigo: String(get('codigo') ?? '').trim() || null,
+        produto: String(get('produto') ?? '').trim() || null,
+        ativo: String(get('ativo') ?? '').trim() || null,
+        negociado: parseNum(get('negociado')),
+        fee_btg: parseNum(get('fee_btg')),
+        fee_atria: parseNum(get('fee_atria')),
+        roa: parseNum(get('roa')),
+        acao: String(get('acao') ?? '').trim() || null,
+        status: String(get('status') ?? '').trim().toUpperCase() || null,
+        mes_origem: String(get('mes_origem') ?? '').trim() || null,
+      };
+    }
+
+    function setupExcelImporter({ dropId, tableName, onImported }) {
+      const dropZone   = $(`#${dropId}`);
+      const fileInput  = $(`#${dropId}-input`);
+      const sheetWrap  = $(`#${dropId}-sheet-wrap`);
+      const sheetSel   = $(`#${dropId}-sheet-select`);
+      const prevWrap   = $(`#${dropId}-preview-wrap`);
+      const prevInfo   = $(`#${dropId}-preview-info`);
+      const prevTable  = $(`#${dropId}-preview-table`);
+      const colMap_el  = $(`#${dropId}-col-map`);
+      const progWrap   = $(`#${dropId}-progress-wrap`);
+      const progFill   = $(`#${dropId}-progress-fill`);
+      const importBtn  = $(`#${dropId === 'excel-drop' ? 'excel-import-btn' : 'os-import-btn'}`);
+      const importStat = $(`#${dropId === 'excel-drop' ? 'excel-import-status' : 'os-import-status'}`);
+      const dropText   = $(`#${dropId}-text`);
+      let wb = null;
+
+      dropZone.addEventListener('click', () => fileInput.click());
+      dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+      dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+      fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+      sheetSel.addEventListener('change', () => processSheet(sheetSel.value));
+      importBtn.addEventListener('click', async () => {
+        const rows = JSON.parse(importBtn.dataset.rows || '[]');
+        if (!rows.length) return;
+        importBtn.disabled = true;
+        progWrap.style.display = '';
+        importStat.className = 'import-status';
+        let inserted = 0;
+        for (let i = 0; i < rows.length; i += 200) {
+          const chunk = rows.slice(i, i + 200);
+          const { error } = await supabase.from(tableName).insert(chunk);
+          if (error) { importStat.textContent = `Erro: ${error.message}`; importStat.className = 'import-status err'; importBtn.disabled = false; return; }
+          inserted += chunk.length;
+          progFill.style.width = Math.round(inserted / rows.length * 100) + '%';
+          importStat.textContent = `Importando… ${inserted} de ${rows.length}`;
+        }
+        importStat.textContent = `✓ ${inserted} boleta${inserted !== 1 ? 's' : ''} importada${inserted !== 1 ? 's' : ''} com sucesso.`;
+        importStat.className = 'import-status ok';
+        importBtn.disabled = false;
+        if (onImported) await onImported();
+      });
+
+      function handleFile(file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
+          dropText.textContent = `📄 ${file.name}`;
+          importStat.textContent = '';
+          progFill.style.width = '0';
+          progWrap.style.display = 'none';
+          if (wb.SheetNames.length > 1) {
+            sheetSel.innerHTML = wb.SheetNames.map(s => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`).join('');
+            sheetWrap.style.display = '';
+          } else { sheetWrap.style.display = 'none'; }
+          processSheet(wb.SheetNames[0]);
+        };
+        reader.readAsArrayBuffer(file);
+      }
+
+      function processSheet(name) {
+        const raw = XLSX.utils.sheet_to_json(wb.Sheets[name], { raw: true, defval: null });
+        if (!raw.length) { importStat.textContent = 'Aba vazia.'; return; }
+        const headers = Object.keys(raw[0]);
+        const cm = mapBoletaCols(headers);
+        const rows = raw.map(r => buildBoletaRow(r, cm)).filter(r => r.cliente || r.data);
+        const fields = ['data','cliente','aai','produto','ativo','negociado','fee_atria','status'];
+        prevTable.innerHTML =
+          `<thead><tr>${fields.map(f => `<th>${escapeHTML(cm[f]?.header ?? f)}</th>`).join('')}</tr></thead>` +
+          `<tbody>${rows.slice(0,5).map(r => `<tr>${fields.map(f => `<td>${escapeHTML(String(r[f] ?? '—'))}</td>`).join('')}</tr>`).join('')}</tbody>`;
+        prevInfo.textContent = `${rows.length} linha${rows.length !== 1 ? 's' : ''} encontrada${rows.length !== 1 ? 's' : ''} • mostrando as primeiras 5`;
+        colMap_el.innerHTML = `<strong>Colunas detectadas:</strong> ${Object.entries(cm).map(([f,v]) => `${f} → "${v.header}"`).join(', ')}`;
+        prevWrap.style.display = '';
+        importBtn.dataset.rows = JSON.stringify(rows);
+      }
+    }
+
+    function getFilteredBoletas(lista, filtros) {
+      const { busca, aai, produto, status, acao, data_de, data_ate } = filtros;
+      const s = normalizeText(busca);
+      return lista.filter(item => {
+        if (aai && item.aai !== aai) return false;
+        if (produto && item.produto !== produto) return false;
+        if (status && item.status !== status) return false;
+        if (acao && item.acao !== acao) return false;
+        if (data_de && (!item.data || item.data < data_de)) return false;
+        if (data_ate && (!item.data || item.data > data_ate)) return false;
+        if (s) {
+          const txt = normalizeText([item.cliente,item.aai,item.codigo,item.produto,item.ativo,item.status,item.acao].join(' '));
+          if (!txt.includes(s)) return false;
+        }
+        return true;
+      });
+    }
+
+    function renderBoletaTable(sid, lista, filtros) {
+      const filtered = getFilteredBoletas(lista, filtros);
+      const tbody = $(`#${sid}-tbody`);
+      tbody.innerHTML = filtered.map(item => `
+        <tr>
+          <td>${formatDate(item.data)}</td>
+          <td>${escapeHTML(item.cliente||'')}</td>
+          <td>${escapeHTML(item.aai||'')}</td>
+          <td>${escapeHTML(item.codigo||'')}</td>
+          <td>${escapeHTML(item.produto||'')}</td>
+          <td>${escapeHTML(item.ativo||'')}</td>
+          <td class="number">${formatMoney(item.negociado)}</td>
+          <td class="number">${formatMoney(item.fee_btg)}</td>
+          <td class="number">${formatMoney(item.fee_atria)}</td>
+          <td class="number">${item.roa ?? ''}</td>
+          <td>${escapeHTML(item.acao||'')}</td>
+          <td><select data-action="status-boleta" data-id="${item.id}" data-table="${item._table}">
+            ${['FEITO','OPERACIONAL','AGUARDAR','PENDENTE'].map(s => `<option ${item.status===s?'selected':''}>${s}</option>`).join('')}
+          </select></td>
+          <td><button class="danger-button" data-action="delete-boleta" data-id="${item.id}" data-table="${item._table}" style="padding:6px 10px;font-size:12px;">Excluir</button></td>
+        </tr>`).join('');
+      const neg = filtered.reduce((a,i) => a+(Number(i.negociado)||0), 0);
+      const fee = filtered.reduce((a,i) => a+(Number(i.fee_atria)||0), 0);
+      $(`#kpi-${sid}-qtd`).textContent = filtered.length;
+      $(`#kpi-${sid}-negociado`).textContent = formatMoney(neg);
+      $(`#kpi-${sid}-fee`).textContent = formatMoney(fee);
+      $(`#kpi-${sid}-repasse`).textContent = formatMoney(fee * 0.12);
+    }
+
+    function renderBoletaFilterOptions(sid, lista, filtros, prefix) {
+      const vals = k => uniqueSorted(lista.map(i => i[k]).filter(Boolean));
+      setSelectOptions($(`#${prefix}-aai`), vals('aai'), filtros.aai);
+      setSelectOptions($(`#${prefix}-produto`), vals('produto'), filtros.produto);
+      setSelectOptions($(`#${prefix}-status`), vals('status'), filtros.status);
+      setSelectOptions($(`#${prefix}-acao`), vals('acao'), filtros.acao);
+    }
+
+    async function loadBoletas() {
+      const { data, error } = await supabase.from('boletas').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      state.boletas = (data || []).map(r => ({ ...r, _table: 'boletas' }));
+      renderBoletaFilterOptions('boletas', state.boletas, state.bfiltros, 'bf');
+      renderBoletaTable('boletas', state.boletas, state.bfiltros);
+    }
+
+    async function loadOffshores() {
+      const { data, error } = await supabase.from('boletas_offshore').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      state.offshores = (data || []).map(r => ({ ...r, _table: 'boletas_offshore' }));
+      renderBoletaFilterOptions('offshore', state.offshores, state.ofiltros, 'of');
+      renderBoletaTable('offshore', state.offshores, state.ofiltros);
+    }
+
+    function setupBoletaSection(sid, lista_key, filtros_key, table_name, form_id, prefix, loadFn) {
+      $(`#${form_id}`).addEventListener('submit', async e => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        const payload = {
+          data: fd.get('data') || null,
+          cliente: fd.get('cliente')?.trim() || null,
+          aai: fd.get('aai')?.trim() || null,
+          produto: fd.get('produto')?.trim() || null,
+          ativo: fd.get('ativo')?.trim() || null,
+          negociado: toNumber(fd.get('negociado')),
+          fee_btg: toNumber(fd.get('fee_btg')),
+          fee_atria: toNumber(fd.get('fee_atria')),
+          roa: toNumber(fd.get('roa')),
+          acao: fd.get('acao')?.trim() || null,
+          status: fd.get('status') || 'FEITO',
+        };
+        try {
+          const { error } = await supabase.from(table_name).insert([payload]);
+          if (error) throw error;
+          e.currentTarget.reset();
+          await loadFn();
+          showMessage('Boleta adicionada.', 'success');
+        } catch (err) { handleError(err, 'adição de boleta'); }
+      });
+
+      [$(`#${prefix}-aai`),$(`#${prefix}-produto`),$(`#${prefix}-status`),$(`#${prefix}-acao`)].forEach(el => {
+        el?.addEventListener('change', e => { state[filtros_key][e.target.id.split('-').pop()] = e.target.value; renderBoletaTable(sid, state[lista_key], state[filtros_key]); });
+      });
+      $(`#${prefix}-busca`).addEventListener('input', e => { state[filtros_key].busca = e.target.value; renderBoletaTable(sid, state[lista_key], state[filtros_key]); });
+      $(`#${prefix}-data-de`).addEventListener('change', e => { state[filtros_key].data_de = e.target.value; renderBoletaTable(sid, state[lista_key], state[filtros_key]); });
+      $(`#${prefix}-data-ate`).addEventListener('change', e => { state[filtros_key].data_ate = e.target.value; renderBoletaTable(sid, state[lista_key], state[filtros_key]); });
+      $(`#${prefix}-limpar`).addEventListener('click', () => {
+        state[filtros_key] = { busca:'', aai:'', produto:'', status:'', acao:'', data_de:'', data_ate:'' };
+        $(`#${prefix}-busca`).value = '';
+        $(`#${prefix}-data-de`).value = '';
+        $(`#${prefix}-data-ate`).value = '';
+        renderBoletaFilterOptions(sid, state[lista_key], state[filtros_key], prefix);
+        renderBoletaTable(sid, state[lista_key], state[filtros_key]);
+      });
+
+      $(`#${sid}-tbody`).addEventListener('change', async e => {
+        const sel = e.target.closest("select[data-action='status-boleta']");
+        if (!sel) return;
+        try {
+          const { error } = await supabase.from(sel.dataset.table).update({ status: sel.value }).eq('id', sel.dataset.id);
+          if (error) throw error;
+          await loadFn();
+        } catch (err) { handleError(err, 'atualização'); }
+      });
+
+      $(`#${sid}-tbody`).addEventListener('click', async e => {
+        const btn = e.target.closest("button[data-action='delete-boleta']");
+        if (!btn) return;
+        if (!window.confirm('Excluir esta boleta?')) return;
+        try {
+          const { error } = await supabase.from(btn.dataset.table).delete().eq('id', btn.dataset.id);
+          if (error) throw error;
+          await loadFn();
+          showMessage('Boleta excluída.', 'success');
+        } catch (err) { handleError(err, 'exclusão'); }
+      });
+    }
+
     async function init() {
       if (
         SUPABASE_URL === "COLE_AQUI_SUA_SUPABASE_URL" ||
@@ -1380,13 +1896,17 @@
       setupTarefaEvents();
       setupLeadEvents();
       setupOportunidadeEvents();
+      setupBoletaSection('boletas','boletas','bfiltros','boletas','boleta-form','bf', loadBoletas);
+      setupBoletaSection('offshore','offshores','ofiltros','boletas_offshore','offshore-form','of', loadOffshores);
+      setupExcelImporter({ dropId:'excel-drop', tableName:'boletas', onImported: loadBoletas });
+      setupExcelImporter({ dropId:'os-drop', tableName:'boletas_offshore', onImported: loadOffshores });
       setupExcelImport();
 
       $("#boleta-form").elements.data.value = todayISO();
 
       try {
         showMessage("Carregando dados...", "info");
-        await Promise.all([loadTarefas(), loadLeads(), loadOportunidades()]);
+        await Promise.all([loadTarefas(), loadLeads(), loadOportunidades(), loadBoletas(), loadOffshores()]);
         showMessage("Dados carregados com sucesso.", "success");
       } catch (error) {
         handleError(error, "carga inicial dos dados");

@@ -756,6 +756,7 @@
           <label>Ação<select id="bf-acao"><option value="">Todas</option></select></label>
           <label>Data de<input id="bf-data-de" type="date" /></label>
           <label>Data até<input id="bf-data-ate" type="date" /></label>
+          <label>Código<input id="bf-codigo" type="text" placeholder="Código" /></label>
           <label>Limpar<button id="bf-limpar" class="secondary-button" type="button">Limpar</button></label>
         </div>
       </div>
@@ -856,6 +857,7 @@
           <label>Ação<select id="of-acao"><option value="">Todas</option></select></label>
           <label>Data de<input id="of-data-de" type="date" /></label>
           <label>Data até<input id="of-data-ate" type="date" /></label>
+          <label>Código<input id="of-codigo" type="text" placeholder="Código" /></label>
           <label>Limpar<button id="of-limpar" class="secondary-button" type="button">Limpar</button></label>
         </div>
       </div>
@@ -988,9 +990,9 @@
       leadFiltros: { busca: "", ass: "", qualificacao: "", houve_contato: "", data_de: "", data_ate: "", pl_min: "", pl_max: "" },
       oportunidadeFiltros: { busca: "", assessor: "", produto: "" },
       boletas: [],
-      bfiltros: { busca: "", aai: "", produto: "", status: "", acao: "", data_de: "", data_ate: "" },
+      bfiltros: { busca: "", aai: "", produto: "", status: "", acao: "", data_de: "", data_ate: "", codigo: "" },
       offshores: [],
-      ofiltros: { busca: "", aai: "", produto: "", status: "", acao: "", data_de: "", data_ate: "" }
+      ofiltros: { busca: "", aai: "", produto: "", status: "", acao: "", data_de: "", data_ate: "", codigo: "" }
     };
 
     const leadStatus = ["lead", "prospect", "cliente", "perdido"];
@@ -1758,6 +1760,7 @@
         if (acao && item.acao !== acao) return false;
         if (data_de && (!item.data || item.data < data_de)) return false;
         if (data_ate && (!item.data || item.data > data_ate)) return false;
+        if (filtros.codigo) { const c = normalizeText(filtros.codigo); if (!normalizeText(item.codigo||'').includes(c)) return false; }
         if (s) {
           const txt = normalizeText([item.cliente,item.aai,item.codigo,item.produto,item.ativo,item.status,item.acao].join(' '));
           if (!txt.includes(s)) return false;
@@ -1852,13 +1855,15 @@
         el?.addEventListener('change', e => { state[filtros_key][e.target.id.split('-').pop()] = e.target.value; renderBoletaTable(sid, state[lista_key], state[filtros_key]); });
       });
       $(`#${prefix}-busca`).addEventListener('input', e => { state[filtros_key].busca = e.target.value; renderBoletaTable(sid, state[lista_key], state[filtros_key]); });
+      $(`#${prefix}-codigo`).addEventListener('input', e => { state[filtros_key].codigo = e.target.value; renderBoletaTable(sid, state[lista_key], state[filtros_key]); });
       $(`#${prefix}-data-de`).addEventListener('change', e => { state[filtros_key].data_de = e.target.value; renderBoletaTable(sid, state[lista_key], state[filtros_key]); });
       $(`#${prefix}-data-ate`).addEventListener('change', e => { state[filtros_key].data_ate = e.target.value; renderBoletaTable(sid, state[lista_key], state[filtros_key]); });
       $(`#${prefix}-limpar`).addEventListener('click', () => {
-        state[filtros_key] = { busca:'', aai:'', produto:'', status:'', acao:'', data_de:'', data_ate:'' };
+        state[filtros_key] = { busca:'', aai:'', produto:'', status:'', acao:'', data_de:'', data_ate:'', codigo:'' };
         $(`#${prefix}-busca`).value = '';
         $(`#${prefix}-data-de`).value = '';
         $(`#${prefix}-data-ate`).value = '';
+        $(`#${prefix}-codigo`).value = '';
         renderBoletaFilterOptions(sid, state[lista_key], state[filtros_key], prefix);
         renderBoletaTable(sid, state[lista_key], state[filtros_key]);
       });

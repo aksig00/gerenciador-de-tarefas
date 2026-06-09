@@ -1783,7 +1783,7 @@
           <td class="number">${formatMoney(item.negociado)}</td>
           <td class="number">${formatMoney(item.fee_btg)}</td>
           <td class="number">${formatMoney(item.fee_atria)}</td>
-          <td class="number">${item.roa ?? ''}</td>
+          <td class="number">${item.roa != null && item.roa !== '' ? (Number(item.roa) * 100).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:4}) + '%' : '—'}</td>
           <td><select data-action="acao-boleta" data-id="${item.id}" data-table="${item._table}">
             <option value="">—</option>
             ${['Aprovado','Executado','Realocar','Vencimento','Pendente'].map(a => `<option ${item.acao===a?'selected':''}>${a}</option>`).join('')}

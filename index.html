@@ -1781,7 +1781,10 @@
           <td class="number">${formatMoney(item.fee_btg)}</td>
           <td class="number">${formatMoney(item.fee_atria)}</td>
           <td class="number">${item.roa ?? ''}</td>
-          <td>${escapeHTML(item.acao||'')}</td>
+          <td><select data-action="acao-boleta" data-id="${item.id}" data-table="${item._table}">
+            <option value="">—</option>
+            ${['Aprovado','Executado','Realocar','Vencimento','Pendente'].map(a => `<option ${item.acao===a?'selected':''}>${a}</option>`).join('')}
+          </select></td>
           <td><select data-action="status-boleta" data-id="${item.id}" data-table="${item._table}">
             ${['FEITO','OPERACIONAL','AGUARDAR','PENDENTE'].map(s => `<option ${item.status===s?'selected':''}>${s}</option>`).join('')}
           </select></td>
@@ -1862,12 +1865,21 @@
 
       $(`#${sid}-tbody`).addEventListener('change', async e => {
         const sel = e.target.closest("select[data-action='status-boleta']");
-        if (!sel) return;
-        try {
-          const { error } = await supabase.from(sel.dataset.table).update({ status: sel.value }).eq('id', sel.dataset.id);
-          if (error) throw error;
-          await loadFn();
-        } catch (err) { handleError(err, 'atualização'); }
+        const selAcao = e.target.closest("select[data-action='acao-boleta']");
+        if (sel) {
+          try {
+            const { error } = await supabase.from(sel.dataset.table).update({ status: sel.value }).eq('id', sel.dataset.id);
+            if (error) throw error;
+            await loadFn();
+          } catch (err) { handleError(err, 'atualização de status'); }
+        }
+        if (selAcao) {
+          try {
+            const { error } = await supabase.from(selAcao.dataset.table).update({ acao: selAcao.value || null }).eq('id', selAcao.dataset.id);
+            if (error) throw error;
+            await loadFn();
+          } catch (err) { handleError(err, 'atualização de ação'); }
+        }
       });
 
       $(`#${sid}-tbody`).addEventListener('click', async e => {
